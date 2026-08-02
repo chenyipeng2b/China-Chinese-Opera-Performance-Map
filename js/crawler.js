@@ -1,7 +1,7 @@
 /**
- * 戏曲演出数据爬虫脚本
- * 多源数据采集：美团/猫眼、摩天轮票务、大麦网、永乐票务、
- * 秀动/票牛、搜狗微信、戏曲文化网站等平台
+ * 戏曲演出数据爬虫脚本 v2.0
+ * 多源数据采集：百度搜索 + Bing搜索 + 搜狗微信深度搜索 + 猫眼/大麦/永乐票务 +
+ * 摩天轮票务 + 戏曲文化网站
  * 由 GitHub Actions 定时执行
  *
  * 运行: node js/crawler.js
@@ -46,13 +46,32 @@ const CITY_COORDS = {
   '乌鲁木齐': { lng: 87.6168, lat: 43.8256 },
   '拉萨': { lng: 91.1172, lat: 29.6500 },
   '海口': { lng: 110.1999, lat: 20.0440 },
-  '南昌': { lng: 115.8582, lat: 28.6829 }
+  '南昌': { lng: 115.8582, lat: 28.6829 },
+  '金华': { lng: 119.6476, lat: 29.0792 },
+  '绍兴': { lng: 120.5821, lat: 30.0045 },
+  '宁波': { lng: 121.5439, lat: 29.8683 },
+  '温州': { lng: 120.6994, lat: 27.9949 },
+  '厦门': { lng: 118.0894, lat: 24.4798 },
+  '青岛': { lng: 120.3826, lat: 36.0671 },
+  '大连': { lng: 121.6186, lat: 38.9140 },
+  '洛阳': { lng: 112.4345, lat: 34.6630 },
+  '开封': { lng: 114.3076, lat: 34.7973 },
+  '桂林': { lng: 110.2900, lat: 25.2744 },
+  '无锡': { lng: 120.3091, lat: 31.4904 },
+  '常州': { lng: 119.9741, lat: 31.8107 },
+  '东莞': { lng: 113.7634, lat: 23.0430 },
+  '佛山': { lng: 113.1227, lat: 23.0286 },
+  '保定': { lng: 115.4646, lat: 38.8739 },
+  '绵阳': { lng: 104.6791, lat: 31.4675 },
+  '宜昌': { lng: 111.2864, lat: 30.6919 },
+  '三亚': { lng: 109.5082, lat: 18.2528 },
+  '咸阳': { lng: 108.7051, lat: 34.3333 }
 };
 
 const CITY_PROVINCE = {
   '北京': '北京市', '上海': '上海市', '天津': '天津市', '重庆': '重庆市',
   '广州': '广东省', '深圳': '广东省', '东莞': '广东省', '佛山': '广东省',
-  '杭州': '浙江省', '宁波': '浙江省', '温州': '浙江省', '绍兴': '浙江省',
+  '杭州': '浙江省', '宁波': '浙江省', '温州': '浙江省', '绍兴': '浙江省', '金华': '浙江省',
   '成都': '四川省', '绵阳': '四川省',
   '武汉': '湖北省', '宜昌': '湖北省',
   '南京': '江苏省', '苏州': '江苏省', '无锡': '江苏省', '常州': '江苏省',
@@ -80,19 +99,36 @@ const CITY_PROVINCE = {
   '南昌': '江西省'
 };
 
-const GENRE_KEYWORDS = ['京剧', '越剧', '豫剧', '川剧', '昆曲', '粤剧', '秦腔', '黄梅戏', '评剧', '沪剧', '晋剧', '河北梆子', '花鼓戏', '婺剧', '潮剧'];
+// 扩展剧种关键词表：50+ 地方剧种全覆盖
+const GENRE_KEYWORDS = [
+  '京剧', '越剧', '豫剧', '川剧', '昆曲', '粤剧', '秦腔', '黄梅戏', '评剧', '沪剧',
+  '晋剧', '河北梆子', '花鼓戏', '婺剧', '潮剧', '闽剧', '滇剧', '黔剧', '桂剧',
+  '陇剧', '祁剧', '湘剧', '汉剧', '楚剧', '徽剧', '赣剧', '淮剧', '锡剧', '扬剧',
+  '柳子戏', '吕剧', '茂腔', '蒲剧', '上党梆子', '北路梆子', '吉剧', '龙江剧',
+  '辽剧', '二人台', '滑稽戏', '高甲戏', '梨园戏', '莆仙戏', '歌仔戏',
+  '琼剧', '壮剧', '侗戏', '藏戏', '彝剧', '白剧', '傣剧',
+  '娄剧', '瓯剧', '甬剧', '杭剧', '湖剧', '姚剧', '绍剧', '睦剧',
+  '花灯戏', '二人转', '皮影戏', '木偶戏', '杖头木偶', '提线木偶',
+  '折子戏', '戏曲', '昆腔', '高腔', '梆子腔', '梆子'
+];
 
 // ==================== HTTP 工具 ====================
 function httpGet(url, opts = {}) {
   return new Promise((resolve, reject) => {
     const client = url.startsWith('https') ? https : http;
     const headers = {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
       'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache',
+      'Sec-Ch-Ua': '"Chromium";v="125", "Not.A/Brand";v="24"',
+      'Sec-Ch-Ua-Platform': '"Windows"',
+      'Upgrade-Insecure-Requests': '1',
       ...opts.headers
     };
-    const req = client.get(url, { headers, timeout: 15000 }, (res) => {
+    const req = client.get(url, { headers, timeout: 20000 }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         const redirectUrl = res.headers.location.startsWith('http')
           ? res.headers.location
@@ -126,14 +162,17 @@ function getProvince(city) {
 
 function extractCity(text) {
   const cityNames = Object.keys(CITY_COORDS);
-  for (const city of cityNames) {
+  // 先匹配长名称（如石家庄），避免短名误匹配
+  const sorted = [...cityNames].sort((a, b) => b.length - a.length);
+  for (const city of sorted) {
     if (text.includes(city)) return city;
   }
   return '北京';
 }
 
 function extractGenre(text) {
-  for (const genre of GENRE_KEYWORDS) {
+  const sorted = [...GENRE_KEYWORDS].sort((a, b) => b.length - a.length);
+  for (const genre of sorted) {
     if (text.includes(genre)) return genre;
   }
   return '戏曲';
@@ -141,42 +180,75 @@ function extractGenre(text) {
 
 function extractDate(text) {
   const patterns = [
-    /(\d{4})[-/年](\d{1,2})[-/月](\d{1,2})/g,
+    /(\d{4})[-/年](\d{1,2})[-/月](\d{1,2})[日号]/g,
+    /(\d{1,2})月(\d{1,2})[日号]\s*[-~至]\s*(\d{1,2})月(\d{1,2})[日号]/g,
+    /(\d{4})\.(\d{1,2})\.(\d{1,2})/g,
+    /(\d{4})-(\d{2})-(\d{2})/g,
     /(\d{1,2})月(\d{1,2})[日号]/g
   ];
   const now = new Date();
+
   for (const pattern of patterns) {
     const matches = [...text.matchAll(pattern)];
     for (const m of matches) {
       try {
         if (m.length === 4) {
-          return m[1] + '-' + String(m[2]).padStart(2, '0') + '-' + String(m[3]).padStart(2, '0');
+          // 完整日期 年-月-日
+          const y = parseInt(m[1]);
+          if (y < 2024 || y > 2030) continue;
+          return y + '-' + String(m[2]).padStart(2, '0') + '-' + String(m[3]).padStart(2, '0');
+        } else if (m.length === 5) {
+          // 日期范围 月日-月日
+          const year = now.getFullYear();
+          const m1 = parseInt(m[1]), d1 = parseInt(m[2]);
+          return year + '-' + String(m1).padStart(2, '0') + '-' + String(d1).padStart(2, '0');
         } else if (m.length === 3) {
+          // 仅 月日
           const year = now.getFullYear();
           const month = parseInt(m[1]);
           const day = parseInt(m[2]);
-          const targetYear = (month < now.getMonth() + 1) ? year + 1 : year;
-          return targetYear + '-' + String(month).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+          if (month < 1 || month > 12 || day < 1 || day > 31) continue;
+          return year + '-' + String(month).padStart(2, '0') + '-' + String(day).padStart(2, '0');
         }
       } catch (e) { /* skip */ }
     }
   }
+  // 默认返回7天后
   const d = new Date();
   d.setDate(d.getDate() + 7);
   return d.toISOString().split('T')[0];
 }
 
+function extractEndDate(text, startDate) {
+  const patterns = [
+    /(\d{4})[-/年](\d{1,2})[-/月](\d{1,2})[日号]\s*[-~至]\s*(\d{4})[-/年]?(\d{1,2})[-/月]?(\d{1,2})[日号]?/g,
+    /(\d{1,2})月(\d{1,2})[日号]\s*[-~至]\s*(\d{1,2})月(\d{1,2})[日号]/g,
+    /(\d{1,2})\.(\d{1,2})\s*[-~至]\s*(\d{1,2})\.(\d{1,2})/g
+  ];
+
+  for (const pattern of patterns) {
+    const matches = [...text.matchAll(pattern)];
+    for (const m of matches) {
+      try {
+        if (m.length >= 5) {
+          const year = new Date().getFullYear();
+          const eMonth = parseInt(m[m.length - 2]);
+          const eDay = parseInt(m[m.length - 1]);
+          if (eMonth >= 1 && eMonth <= 12 && eDay >= 1 && eDay <= 31) {
+            return year + '-' + String(eMonth).padStart(2, '0') + '-' + String(eDay).padStart(2, '0');
+          }
+        }
+      } catch (e) { /* skip */ }
+    }
+  }
+  return startDate;
+}
+
 function decodeHtml(html) {
   return html
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&#x27;/g, "'")
-    .replace(/&nbsp;/g, ' ')
-    .replace(/<em>/g, '')
-    .replace(/<\/em>/g, '')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&#x27;/g, "'")
+    .replace(/&nbsp;/g, ' ').replace(/<em>/g, '').replace(/<\/em>/g, '')
     .replace(/<[^>]*>/g, '');
 }
 
@@ -184,14 +256,355 @@ function cleanText(text) {
   return decodeHtml(text)
     .replace(/\s+/g, ' ')
     .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<title>[^<]*<\/title>/gi, '')
     .trim();
 }
 
-// ==================== 1. 美团/猫眼演出 ====================
+function extractTitle(text) {
+  // 从文本中提取演出名称：取包含剧种关键词的最长片段
+  const patterns = [
+    /(《[^》]+》)/g,
+    /(「[^」]+」)/g,
+    /(['\u2018][^'\u2019]+['\u2019])/g,
+    /([^\s]{4,30}(?:演出|专场|巡演|公演|首演|开票|上演))/g
+  ];
+  for (const p of patterns) {
+    const matches = [...text.matchAll(p)];
+    if (matches.length > 0) {
+      return cleanText(matches[0][1] || matches[0][0]).substring(0, 60);
+    }
+  }
+  return '';
+}
+
+function extractVenue(text) {
+  const patterns = [
+    /([^\s]{2,}(?:大剧院|艺术中心|文化中心|剧院|剧场|戏院|戏楼|梨园|舞台|演艺中心|音乐厅|会堂|文化宫))/g,
+    /地点[：:]\s*([^\s,，。\n]{2,20})/g,
+    /场馆[：:]\s*([^\s,，。\n]{2,20})/g,
+    /地址[：:]\s*([^\s,，。\n]{2,30})/g
+  ];
+  for (const p of patterns) {
+    const matches = [...text.matchAll(p)];
+    if (matches.length > 0) {
+      return cleanText(matches[0][1] || matches[0][0]).substring(0, 40);
+    }
+  }
+  return '';
+}
+
+function extractTroupe(text) {
+  const patterns = [
+    /([^\s]{2,}(?:剧团|剧院|院团|演艺集团|演出团|戏班|传习所|传承中心|演艺公司|文化公司))/g,
+    /演出[：:单位]?\s*([^\s,，。\n]{2,15}(?:剧团|剧院|院团))/g,
+    /主办[：:]\s*([^\s,，。\n]{2,20})/g
+  ];
+  for (const p of patterns) {
+    const matches = [...text.matchAll(p)];
+    if (matches.length > 0) {
+      return cleanText(matches[0][1] || matches[0][0]).substring(0, 30);
+    }
+  }
+  return '待确认';
+}
+
+// ==================== 1. 百度搜索 ====================
+async function crawlBaiduSearch() {
+  console.log('[百度搜索] 搜索戏曲演出信息...');
+  const results = [];
+  const searchQueries = [
+    '戏曲演出 2026',
+    '京剧演出 近期',
+    '越剧演出 剧场',
+    '昆曲演出 开票',
+    '豫剧演出 时间',
+    '川剧演出 巡演',
+    '地方戏曲 演出 折子戏',
+    '戏曲 专场演出 2026'
+  ];
+
+  for (const query of searchQueries) {
+    try {
+      const url = 'https://www.baidu.com/s?wd=' + encodeURIComponent(query) + '&ie=utf-8&rn=20';
+      const html = await httpGet(url, {
+        headers: {
+          'Referer': 'https://www.baidu.com/',
+          'Accept-Language': 'zh-CN,zh;q=0.9'
+        }
+      });
+
+      if (!html || html.length < 500) {
+        console.log('[百度搜索] "' + query + '" 返回内容不足');
+        continue;
+      }
+
+      // 百度搜索结果卡片
+      const resultRegex = /<div[^>]*class="[^"]*result[^"]*"[^>]*>([\s\S]*?)<\/div>\s*(?=<div[^>]*class="[^"]*result[^"]*"|$)/gi;
+      const resultBlocks = html.match(resultRegex) || [];
+
+      // 备选：匹配标题+摘要
+      if (resultBlocks.length === 0) {
+        const snippetRegex = /<span[^>]*class="[^"]*content-right_[^"]*"[^>]*>([\s\S]*?)<\/span>/gi;
+        const snippets = html.match(snippetRegex) || [];
+        for (const snippet of snippets) {
+          const text = cleanText(snippet);
+          if (text.length < 10) continue;
+          processSearchSnippet(results, text, query, '百度搜索');
+        }
+        console.log('[百度搜索] "' + query + '" 片段模式解析 ' + results.length + ' 条');
+        continue;
+      }
+
+      let count = 0;
+      for (const block of resultBlocks) {
+        if (count >= 5) break;
+
+        // 提取标题
+        const titleMatch = block.match(/<a[^>]*>(?:<em>)?([\s\S]*?)(?:<\/em>)?<\/a>/i);
+        const title = titleMatch ? cleanText(titleMatch[1]) : '';
+
+        // 提取摘要
+        const summaryMatch = block.match(/<span[^>]*class="[^"]*content-right_[^"]*"[^>]*>([\s\S]*?)<\/span>/i) ||
+                            block.match(/<div[^>]*class="[^"]*c-abstract[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
+        const summary = summaryMatch ? cleanText(summaryMatch[1]) : '';
+
+        const fullText = title + ' ' + summary + ' ' + block;
+        const isOpera = GENRE_KEYWORDS.some(g => fullText.includes(g)) ||
+          /演出|戏曲|剧场|剧院|巡演|开票|上演|折子戏|梨园/.test(fullText);
+
+        if (!isOpera || fullText.length < 8) continue;
+
+        const name = extractTitle(fullText) || title.substring(0, 50);
+        const city = extractCity(fullText);
+        const coords = getCoords(city);
+        const date = extractDate(fullText);
+        const venue = extractVenue(fullText) || (city + '剧院');
+        const troupe = extractTroupe(fullText);
+
+        results.push({
+          id: 'bd_' + Date.now() + '_' + results.length,
+          name: name,
+          genre: extractGenre(fullText),
+          province: getProvince(city),
+          city: city,
+          address: venue,
+          startDate: date,
+          endDate: extractEndDate(fullText, date),
+          troupe: troupe,
+          description: summary.substring(0, 150) || '来自百度搜索结果',
+          lng: coords.lng,
+          lat: coords.lat,
+          source: 'crawled',
+          sourcePlatform: '百度搜索'
+        });
+        count++;
+      }
+
+      console.log('[百度搜索] "' + query + '" 解析出 ' + count + ' 条');
+      await new Promise(r => setTimeout(r, 2000));
+    } catch (error) {
+      console.error('[百度搜索] "' + query + '" 失败:', error.message);
+    }
+  }
+
+  return results;
+}
+
+// ==================== 2. Bing 搜索 ====================
+async function crawlBingSearch() {
+  console.log('[Bing搜索] 搜索戏曲演出信息...');
+  const results = [];
+  const searchQueries = [
+    '戏曲演出 2026 开票',
+    '京剧 越剧 昆曲 演出 剧场',
+    '中国戏曲 专场演出 购票',
+    '地方戏 演出 巡演 2026'
+  ];
+
+  for (const query of searchQueries) {
+    try {
+      const url = 'https://www.bing.com/search?q=' + encodeURIComponent(query) + '&setlang=zh-cn&count=20';
+      const html = await httpGet(url, {
+        headers: {
+          'Referer': 'https://www.bing.com/',
+          'Accept-Language': 'zh-CN,zh;q=0.9'
+        }
+      });
+
+      if (!html || html.length < 500) continue;
+
+      // Bing 搜索结果
+      const resultRegex = /<li[^>]*class="[^"]*b_algo[^"]*"[^>]*>([\s\S]*?)<\/li>/gi;
+      const resultBlocks = html.match(resultRegex) || [];
+
+      let count = 0;
+      for (const block of resultBlocks) {
+        if (count >= 5) break;
+
+        const titleMatch = block.match(/<a[^>]*>(?:<strong>)?([\s\S]*?)(?:<\/strong>)?<\/a>/i);
+        const title = titleMatch ? cleanText(titleMatch[1]) : '';
+
+        const summaryMatch = block.match(/<p[^>]*class="[^"]*b_lineclamp[^"]*"[^>]*>([\s\S]*?)<\/p>/i) ||
+                            block.match(/<div[^>]*class="[^"]*b_caption[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
+        const summary = summaryMatch ? cleanText(summaryMatch[1]) : '';
+
+        const fullText = title + ' ' + summary;
+        const isOpera = GENRE_KEYWORDS.some(g => fullText.includes(g)) ||
+          /演出|戏曲|剧场|剧院|巡演|开票|上演|折子戏/.test(fullText);
+
+        if (!isOpera || fullText.length < 8) continue;
+
+        const name = extractTitle(fullText) || title.substring(0, 50);
+        const city = extractCity(fullText);
+        const coords = getCoords(city);
+        const date = extractDate(fullText);
+
+        results.push({
+          id: 'bi_' + Date.now() + '_' + results.length,
+          name: name,
+          genre: extractGenre(fullText),
+          province: getProvince(city),
+          city: city,
+          address: extractVenue(fullText) || (city + '剧院'),
+          startDate: date,
+          endDate: extractEndDate(fullText, date),
+          troupe: extractTroupe(fullText),
+          description: summary.substring(0, 150) || '来自Bing搜索结果',
+          lng: coords.lng,
+          lat: coords.lat,
+          source: 'crawled',
+          sourcePlatform: 'Bing搜索'
+        });
+        count++;
+      }
+
+      console.log('[Bing搜索] "' + query + '" 解析出 ' + count + ' 条');
+      await new Promise(r => setTimeout(r, 2000));
+    } catch (error) {
+      console.error('[Bing搜索] "' + query + '" 失败:', error.message);
+    }
+  }
+
+  return results;
+}
+
+// 通用搜索结果片段处理
+function processSearchSnippet(results, text, query, platform) {
+  const isOpera = GENRE_KEYWORDS.some(g => text.includes(g)) ||
+    /演出|戏曲|剧场|剧院|巡演|开票|上演|折子戏/.test(text);
+  if (!isOpera || text.length < 6) return;
+
+  const name = extractTitle(text);
+  if (!name || name.length < 3) return;
+
+  const city = extractCity(text);
+  const coords = getCoords(city);
+  const date = extractDate(text);
+
+  results.push({
+    id: (platform === '百度搜索' ? 'bd' : 'se') + '_' + Date.now() + '_' + results.length,
+    name: name,
+    genre: extractGenre(text),
+    province: getProvince(city),
+    city: city,
+    address: extractVenue(text) || (city + '剧院'),
+    startDate: date,
+    endDate: extractEndDate(text, date),
+    troupe: extractTroupe(text),
+    description: text.substring(0, 150) || '来自' + platform + '搜索',
+    lng: coords.lng,
+    lat: coords.lat,
+    source: 'crawled',
+    sourcePlatform: platform
+  });
+}
+
+// ==================== 3. 搜狗微信深度搜索 ====================
+async function crawlSogouWeixin(keyword) {
+  console.log('[搜狗微信] 搜索: "' + keyword + '"');
+  const results = [];
+
+  try {
+    const encodedKeyword = encodeURIComponent(keyword);
+    const url = 'https://weixin.sogou.com/weixin?type=2&query=' + encodedKeyword + '&ie=utf8';
+    const html = await httpGet(url, {
+      headers: {
+        'Referer': 'https://weixin.sogou.com/',
+        'Accept-Language': 'zh-CN,zh;q=0.9'
+      }
+    });
+
+    if (!html || html.length < 500) {
+      console.log('[搜狗微信] 返回内容过短，可能被反爬');
+      return results;
+    }
+
+    const itemRegex = /<li[^>]*class="[^"]*news-list2[^"]*"[^>]*>([\s\S]*?)<\/li>/gi;
+    const items = html.match(itemRegex) || [];
+
+    console.log('[搜狗微信] 找到 ' + items.length + ' 个搜索结果');
+
+    for (const item of items) {
+      try {
+        const titleMatch = item.match(/<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/i);
+        if (!titleMatch) continue;
+        const title = cleanText(titleMatch[2]);
+        const link = titleMatch[1].replace(/&amp;/g, '&');
+
+        const summaryMatch = item.match(/<p[^>]*class="[^"]*txt-info[^"]*"[^>]*>([\s\S]*?)<\/p>/i);
+        const summary = summaryMatch ? cleanText(summaryMatch[1]) : '';
+
+        const sourceMatch = item.match(/<span[^>]*class="[^"]*s2[^"]*"[^>]*>([\s\S]*?)<\/span>/i);
+        const source = sourceMatch ? cleanText(sourceMatch[1]) : '';
+
+        const fullText = title + ' ' + summary + ' ' + source;
+
+        const isOperaRelated = GENRE_KEYWORDS.some(g => fullText.includes(g)) ||
+          /戏曲|演出|舞台|剧场|剧院|巡演|开票|上演|折子戏|梨园|戏班/.test(fullText);
+
+        if (!isOperaRelated) continue;
+
+        const name = extractTitle(fullText) || title.substring(0, 50);
+        const city = extractCity(fullText);
+        const genre = extractGenre(fullText);
+        const date = extractDate(fullText);
+        const coords = getCoords(city);
+
+        results.push({
+          id: 'wx_' + Date.now() + '_' + results.length,
+          name: name,
+          genre: genre,
+          province: getProvince(city),
+          city: city,
+          address: extractVenue(fullText) || (city + '剧院'),
+          startDate: date,
+          endDate: extractEndDate(fullText, date),
+          troupe: extractTroupe(fullText) || source || '待确认',
+          description: summary.substring(0, 150) || '来自微信公众号信息',
+          lng: coords.lng,
+          lat: coords.lat,
+          source: 'crawled',
+          sourcePlatform: '微信公众号',
+          sourceLink: link
+        });
+      } catch (e) { /* skip */ }
+    }
+
+    console.log('[搜狗微信] 解析出 ' + results.length + ' 条');
+  } catch (error) {
+    console.error('[搜狗微信] 爬取失败:', error.message);
+  }
+
+  return results;
+}
+
+// ==================== 4. 猫眼/美团演出 ====================
 async function crawlMeituanMaoyan() {
   console.log('[美团/猫眼] 搜索戏曲演出...');
   const results = [];
-  const keywords = ['戏曲', '京剧', '越剧', '昆曲'];
+  const keywords = ['戏曲', '京剧', '越剧', '昆曲', '折子戏'];
 
   for (const keyword of keywords) {
     try {
@@ -219,14 +632,14 @@ async function crawlMeituanMaoyan() {
 
             results.push({
               id: 'my_' + Date.now() + '_' + results.length,
-              name: name.substring(0, 50),
+              name: name.substring(0, 60),
               genre: extractGenre(name + ' ' + keyword),
               province: getProvince(city),
               city: city,
               address: venue,
               startDate: typeof date === 'string' ? date.substring(0, 10) : extractDate(name + keyword),
               endDate: typeof date === 'string' ? date.substring(0, 10) : extractDate(name + keyword),
-              troupe: show.troupe || '待确认',
+              troupe: show.troupe || extractTroupe(JSON.stringify(show)),
               description: show.desc || show.description || '来自猫眼演出搜索',
               lng: coords.lng,
               lat: coords.lat,
@@ -240,7 +653,6 @@ async function crawlMeituanMaoyan() {
 
       const itemRegex = /<a[^>]*href="\/show\/[^"]*"[^>]*>([\s\S]*?)<\/a>/gi;
       const items = html.match(itemRegex) || [];
-
       for (const item of items) {
         const text = cleanText(item);
         const isOpera = GENRE_KEYWORDS.some(g => text.includes(g)) || /戏曲|折子戏/.test(text);
@@ -252,14 +664,14 @@ async function crawlMeituanMaoyan() {
 
         results.push({
           id: 'my_' + Date.now() + '_' + results.length,
-          name: text.substring(0, 50),
+          name: extractTitle(text) || text.substring(0, 50),
           genre: extractGenre(text),
           province: getProvince(city),
           city: city,
-          address: city + '剧院',
+          address: extractVenue(text) || (city + '剧院'),
           startDate: date,
-          endDate: date,
-          troupe: '待确认',
+          endDate: extractEndDate(text, date),
+          troupe: extractTroupe(text),
           description: '来自猫眼演出搜索',
           lng: coords.lng,
           lat: coords.lat,
@@ -278,7 +690,7 @@ async function crawlMeituanMaoyan() {
   return results;
 }
 
-// ==================== 2. 摩天轮票务 ====================
+// ==================== 5. 摩天轮票务 ====================
 async function crawlMoretickets() {
   console.log('[摩天轮票务] 搜索戏曲演出...');
   const results = [];
@@ -297,77 +709,57 @@ async function crawlMoretickets() {
     const cardRegex = /<div[^>]*class="[^"]*show-item[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>\s*<\/div>/gi;
     const cards = html.match(cardRegex) || [];
 
-    if (cards.length === 0) {
-      const altRegex = /<a[^>]*href="\/show\/[^"]*"[^>]*>([\s\S]*?)<\/a>/gi;
-      const altCards = html.match(altRegex) || [];
-      for (const card of altCards) {
-        const text = cleanText(card);
-        if (!/戏曲|京剧|越剧|昆曲|豫剧|粤剧|川剧/.test(text)) continue;
-        if (text.length < 3) continue;
-
-        const city = extractCity(text);
-        const coords = getCoords(city);
-        const date = extractDate(text);
-
-        results.push({
-          id: 'mt_' + Date.now() + '_' + results.length,
-          name: text.substring(0, 50),
-          genre: extractGenre(text),
-          province: getProvince(city),
-          city: city,
-          address: city + '剧院',
-          startDate: date,
-          endDate: date,
-          troupe: '待确认',
-          description: '来自摩天轮票务搜索',
-          lng: coords.lng,
-          lat: coords.lat,
-          source: 'crawled',
-          sourcePlatform: '摩天轮票务'
-        });
-      }
-      console.log('[摩天轮票务] 备选模式解析 ' + results.length + ' 条');
-      return results;
-    }
-
-    for (const card of cards) {
+    const processCard = (card) => {
       try {
         const nameMatch = card.match(/<h3[^>]*>([\s\S]*?)<\/h3>/i) ||
                           card.match(/<span[^>]*class="[^"]*name[^"]*"[^>]*>([\s\S]*?)<\/span>/i) ||
                           card.match(/<a[^>]*class="[^"]*title[^"]*"[^>]*>([\s\S]*?)<\/a>/i);
-        if (!nameMatch) continue;
+        if (!nameMatch) return null;
         const name = cleanText(nameMatch[1]);
-
-        const isOpera = GENRE_KEYWORDS.some(g => name.includes(g)) || /戏曲|折子戏/.test(name);
-        if (!isOpera) continue;
+        if (!GENRE_KEYWORDS.some(g => name.includes(g)) && !/戏曲|折子戏/.test(name)) return null;
 
         const cityMatch = card.match(/<span[^>]*class="[^"]*city[^"]*"[^>]*>([\s\S]*?)<\/span>/i) ||
                           card.match(/<span[^>]*class="[^"]*venue[^"]*"[^>]*>([\s\S]*?)<\/span>/i);
         const city = cityMatch ? extractCity(cleanText(cityMatch[1])) : extractCity(card);
 
         const venueMatch = card.match(/<span[^>]*class="[^"]*venue[^"]*"[^>]*>([\s\S]*?)<\/span>/i);
-        const venue = venueMatch ? cleanText(venueMatch[1]) : (city + '剧院');
+        const venue = venueMatch ? cleanText(venueMatch[1]) : extractVenue(card) || (city + '剧院');
 
         const date = extractDate(card);
         const coords = getCoords(city);
 
-        results.push({
+        return {
           id: 'mt_' + Date.now() + '_' + results.length,
-          name: name.substring(0, 50),
+          name: name.substring(0, 60),
           genre: extractGenre(name),
           province: getProvince(city),
           city: city,
           address: venue,
           startDate: date,
-          endDate: date,
-          troupe: '待确认',
+          endDate: extractEndDate(card, date),
+          troupe: extractTroupe(card),
           description: '来自摩天轮票务搜索',
           lng: coords.lng,
           lat: coords.lat,
           source: 'crawled',
           sourcePlatform: '摩天轮票务'
-        });
-      } catch (e) { /* skip */ }
+        };
+      } catch (e) { return null; }
+    };
+
+    for (const card of cards) {
+      const r = processCard(card);
+      if (r) results.push(r);
+    }
+
+    // 备选模式
+    if (results.length === 0) {
+      const altRegex = /<a[^>]*href="\/show\/[^"]*"[^>]*>([\s\S]*?)<\/a>/gi;
+      const altCards = html.match(altRegex) || [];
+      for (const card of altCards) {
+        const r = processCard(card);
+        if (r) results.push(r);
+      }
     }
 
     console.log('[摩天轮票务] 解析出 ' + results.length + ' 条');
@@ -378,81 +770,11 @@ async function crawlMoretickets() {
   return results;
 }
 
-// ==================== 3. 搜狗微信搜索 ====================
-async function crawlSogouWeixin(keyword) {
-  console.log('[搜狗微信] 搜索: "' + keyword + '"');
-  const results = [];
-
-  try {
-    const encodedKeyword = encodeURIComponent(keyword);
-    const url = 'https://weixin.sogou.com/weixin?type=2&query=' + encodedKeyword + '&ie=utf8';
-    const html = await httpGet(url);
-
-    if (!html || html.length < 500) {
-      console.log('[搜狗微信] 返回内容过短，可能被反爬');
-      return results;
-    }
-
-    const itemRegex = /<li[^>]*class="[^"]*news-list2[^"]*"[^>]*>([\s\S]*?)<\/li>/gi;
-    const items = html.match(itemRegex) || [];
-
-    for (const item of items) {
-      try {
-        const titleMatch = item.match(/<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/i);
-        if (!titleMatch) continue;
-        const title = cleanText(titleMatch[2]);
-        const link = titleMatch[1].replace(/&amp;/g, '&');
-
-        const summaryMatch = item.match(/<p[^>]*class="[^"]*txt-info[^"]*"[^>]*>([\s\S]*?)<\/p>/i);
-        const summary = summaryMatch ? cleanText(summaryMatch[1]) : '';
-
-        const sourceMatch = item.match(/<span[^>]*class="[^"]*s2[^"]*"[^>]*>([\s\S]*?)<\/span>/i);
-        const source = sourceMatch ? cleanText(sourceMatch[1]) : '';
-
-        const fullText = title + ' ' + summary + ' ' + source;
-
-        const isOperaRelated = GENRE_KEYWORDS.some(g => fullText.includes(g)) ||
-          /戏曲|演出|舞台|剧场|剧院|巡演|开票|上演/.test(fullText);
-        if (!isOperaRelated) continue;
-
-        const city = extractCity(fullText);
-        const genre = extractGenre(fullText);
-        const date = extractDate(fullText);
-        const coords = getCoords(city);
-
-        results.push({
-          id: 'wx_' + Date.now() + '_' + results.length,
-          name: title.substring(0, 50),
-          genre: genre,
-          province: getProvince(city),
-          city: city,
-          address: city + '剧院',
-          startDate: date,
-          endDate: date,
-          troupe: source || '待确认',
-          description: summary.substring(0, 100) || '来自微信公众号信息',
-          lng: coords.lng,
-          lat: coords.lat,
-          source: 'crawled',
-          sourcePlatform: '微信公众号',
-          sourceLink: link
-        });
-      } catch (e) { /* skip */ }
-    }
-
-    console.log('[搜狗微信] 解析出 ' + results.length + ' 条');
-  } catch (error) {
-    console.error('[搜狗微信] 爬取失败:', error.message);
-  }
-
-  return results;
-}
-
-// ==================== 4. 大麦网搜索 ====================
+// ==================== 6. 大麦网 ====================
 async function crawlDamai() {
   console.log('[大麦网] 搜索戏曲演出...');
   const results = [];
-  const keywords = ['戏曲', '京剧', '越剧', '昆曲', '豫剧'];
+  const keywords = ['戏曲', '京剧', '越剧', '昆曲', '豫剧', '折子戏'];
 
   for (const keyword of keywords) {
     try {
@@ -470,12 +792,11 @@ async function crawlDamai() {
         if (!nameMatch) continue;
         const name = cleanText(nameMatch[1]);
 
-        const isOpera = GENRE_KEYWORDS.some(g => name.includes(g)) || /戏曲|折子戏/.test(name);
-        if (!isOpera) continue;
+        if (!GENRE_KEYWORDS.some(g => name.includes(g)) && !/戏曲|折子戏/.test(name)) continue;
 
         const cityMatch = card.match(/<span[^>]*class="[^"]*city[^"]*"[^>]*>([\s\S]*?)<\/span>/i) ||
                           card.match(/<span[^>]*class="[^"]*venue[^"]*"[^>]*>([\s\S]*?)<\/span>/i);
-        const city = cityMatch ? extractCity(cleanText(cityMatch[1])) : '北京';
+        const city = cityMatch ? extractCity(cleanText(cityMatch[1])) : extractCity(card);
 
         const dateMatch = card.match(/<span[^>]*class="[^"]*time[^"]*"[^>]*>([\s\S]*?)<\/span>/i) ||
                           card.match(/<span[^>]*class="[^"]*date[^"]*"[^>]*>([\s\S]*?)<\/span>/i);
@@ -483,21 +804,20 @@ async function crawlDamai() {
         const date = dateText ? extractDate(dateText) : extractDate(card);
 
         const venueMatch = card.match(/<span[^>]*class="[^"]*venue[^"]*"[^>]*>([\s\S]*?)<\/span>/i);
-        const venue = venueMatch ? cleanText(venueMatch[1]) : (city + '剧院');
+        const venue = venueMatch ? cleanText(venueMatch[1]) : extractVenue(card) || (city + '剧院');
 
         const coords = getCoords(city);
-        const genre = extractGenre(name + ' ' + keyword);
 
         results.push({
           id: 'dm_' + Date.now() + '_' + results.length,
-          name: name.substring(0, 50),
-          genre: genre,
+          name: name.substring(0, 60),
+          genre: extractGenre(name + ' ' + keyword),
           province: getProvince(city),
           city: city,
           address: venue,
           startDate: date,
-          endDate: date,
-          troupe: '待确认',
+          endDate: extractEndDate(card, date),
+          troupe: extractTroupe(card),
           description: '来自大麦网搜索"' + keyword + '"',
           lng: coords.lng,
           lat: coords.lat,
@@ -516,7 +836,7 @@ async function crawlDamai() {
   return results;
 }
 
-// ==================== 5. 永乐票务 ====================
+// ==================== 7. 永乐票务 ====================
 async function crawlYongle() {
   console.log('[永乐票务] 搜索戏曲演出...');
   const results = [];
@@ -534,24 +854,22 @@ async function crawlYongle() {
       if (!nameMatch) continue;
       const name = cleanText(nameMatch[1]);
 
-      const isOpera = GENRE_KEYWORDS.some(g => name.includes(g)) || /戏曲/.test(name);
-      if (!isOpera) continue;
+      if (!GENRE_KEYWORDS.some(g => name.includes(g)) && !/戏曲|折子戏/.test(name)) continue;
 
       const city = extractCity(item);
       const coords = getCoords(city);
-      const genre = extractGenre(name);
       const date = extractDate(item);
 
       results.push({
         id: 'yl_' + Date.now() + '_' + results.length,
-        name: name.substring(0, 50),
-        genre: genre,
+        name: name.substring(0, 60),
+        genre: extractGenre(name),
         province: getProvince(city),
         city: city,
-        address: city + '剧院',
+        address: extractVenue(item) || (city + '剧院'),
         startDate: date,
-        endDate: date,
-        troupe: '待确认',
+        endDate: extractEndDate(item, date),
+        troupe: extractTroupe(item),
         description: '来自永乐票务搜索结果',
         lng: coords.lng,
         lat: coords.lat,
@@ -568,68 +886,7 @@ async function crawlYongle() {
   return results;
 }
 
-// ==================== 6. 聚合平台 ====================
-async function crawlAggregators() {
-  console.log('[聚合平台] 搜索戏曲演出...');
-  const results = [];
-  const platforms = [
-    { url: 'https://www.showstart.com/search?keyword=', name: '秀动', kw: '戏曲' },
-    { url: 'https://www.piaoniu.com/search?keyword=', name: '票牛', kw: '戏曲' }
-  ];
-
-  for (const pf of platforms) {
-    try {
-      const url = pf.url + encodeURIComponent(pf.kw);
-      const html = await httpGet(url, {
-        headers: { 'Accept': 'text/html,application/xhtml+xml' }
-      });
-
-      if (!html || html.length < 300) continue;
-
-      const itemRegex = /<a[^>]*href="[^"]*"[^>]*>([\s\S]*?)<\/a>/gi;
-      const items = html.match(itemRegex) || [];
-
-      let count = 0;
-      for (const item of items) {
-        if (count >= 5) break;
-        const text = cleanText(item);
-        const isOpera = GENRE_KEYWORDS.some(g => text.includes(g)) || /戏曲/.test(text);
-        if (!isOpera || text.length < 3) continue;
-
-        const city = extractCity(text);
-        const coords = getCoords(city);
-        const date = extractDate(text);
-
-        results.push({
-          id: 'ag_' + Date.now() + '_' + results.length,
-          name: text.substring(0, 50),
-          genre: extractGenre(text),
-          province: getProvince(city),
-          city: city,
-          address: city + '剧院',
-          startDate: date,
-          endDate: date,
-          troupe: '待确认',
-          description: '来自' + pf.name + '搜索',
-          lng: coords.lng,
-          lat: coords.lat,
-          source: 'crawled',
-          sourcePlatform: pf.name
-        });
-        count++;
-      }
-
-      console.log('[聚合平台] ' + pf.name + ' 解析出 ' + count + ' 条');
-      await new Promise(r => setTimeout(r, 2000));
-    } catch (error) {
-      console.error('[聚合平台] ' + pf.name + ' 失败:', error.message);
-    }
-  }
-
-  return results;
-}
-
-// ==================== 7. 戏曲文化网站 ====================
+// ==================== 8. 戏曲文化网站 ====================
 async function crawlOperaSites() {
   console.log('[戏曲网站] 搜索演出资讯...');
   const results = [];
@@ -659,23 +916,23 @@ async function crawlOperaSites() {
 
         const isOpera = GENRE_KEYWORDS.some(g => text.includes(g)) ||
           /演出|戏曲|剧场|上演|开票|巡演|折子戏/.test(text);
+
         if (!isOpera || text.length < 4) continue;
 
         const city = extractCity(text);
         const coords = getCoords(city);
-        const genre = extractGenre(text);
         const date = extractDate(text);
 
         results.push({
           id: 'op_' + Date.now() + '_' + results.length,
-          name: text.substring(0, 50),
-          genre: genre,
+          name: extractTitle(text) || text.substring(0, 50),
+          genre: extractGenre(text),
           province: getProvince(city),
           city: city,
-          address: city + '剧院',
+          address: extractVenue(text) || (city + '剧院'),
           startDate: date,
-          endDate: date,
-          troupe: '待确认',
+          endDate: extractEndDate(text, date),
+          troupe: extractTroupe(text),
           description: '来自' + site.name + '资讯',
           lng: coords.lng,
           lat: coords.lat,
@@ -698,41 +955,58 @@ async function crawlOperaSites() {
 // ==================== 主流程 ====================
 async function crawlAll() {
   console.log('='.repeat(60));
-  console.log('[爬虫] 多源爬取戏曲演出数据');
+  console.log('[爬虫] v2.0 多源爬取戏曲演出数据');
   console.log('[爬虫] 时间:', new Date().toISOString());
   console.log('='.repeat(60));
 
   const allResults = [];
 
-  console.log('\n--- 第1站：美团/猫眼 ---');
-  const meituanResults = await crawlMeituanMaoyan();
-  allResults.push(...meituanResults);
+  // 1. 百度搜索（新增）
+  console.log('\n--- 第1站：百度搜索 ---');
+  const baiduResults = await crawlBaiduSearch();
+  allResults.push(...baiduResults);
 
-  console.log('\n--- 第2站：摩天轮票务 ---');
-  const moreticketsResults = await crawlMoretickets();
-  allResults.push(...moreticketsResults);
+  // 2. Bing搜索（新增）
+  console.log('\n--- 第2站：Bing搜索 ---');
+  const bingResults = await crawlBingSearch();
+  allResults.push(...bingResults);
 
-  console.log('\n--- 第3站：大麦网 ---');
-  const damaiResults = await crawlDamai();
-  allResults.push(...damaiResults);
-
-  console.log('\n--- 第4站：永乐票务 ---');
-  const yongleResults = await crawlYongle();
-  allResults.push(...yongleResults);
-
-  console.log('\n--- 第5站：聚合票务平台 ---');
-  const aggregatorResults = await crawlAggregators();
-  allResults.push(...aggregatorResults);
-
-  console.log('\n--- 第6站：微信公众号 ---');
-  const weixinKeywords = ['戏曲演出', '京剧演出', '越剧演出', '昆曲演出', '戏曲开票', '剧场戏曲'];
+  // 3. 搜狗微信深度搜索
+  console.log('\n--- 第3站：微信公众号搜索 ---');
+  const weixinKeywords = [
+    '戏曲演出 2026', '京剧演出 近期', '越剧演出 剧场', '昆曲演出 开票',
+    '豫剧演出 巡演', '川剧演出', '地方戏曲 折子戏', '戏曲 专场演出',
+    '娄剧 演出', '瓯剧 演出', '甬剧 演出', '绍剧 演出',
+    '戏曲开票', '剧场戏曲', '戏院 演出 2026', '戏曲 购票'
+  ];
   for (const kw of weixinKeywords) {
     const wxResults = await crawlSogouWeixin(kw);
     allResults.push(...wxResults);
     await new Promise(r => setTimeout(r, 3000));
   }
 
-  console.log('\n--- 第7站：戏曲文化网站 ---');
+  // 4. 猫眼演出
+  console.log('\n--- 第4站：美团/猫眼演出 ---');
+  const meituanResults = await crawlMeituanMaoyan();
+  allResults.push(...meituanResults);
+
+  // 5. 摩天轮票务
+  console.log('\n--- 第5站：摩天轮票务 ---');
+  const moreticketsResults = await crawlMoretickets();
+  allResults.push(...moreticketsResults);
+
+  // 6. 大麦网
+  console.log('\n--- 第6站：大麦网 ---');
+  const damaiResults = await crawlDamai();
+  allResults.push(...damaiResults);
+
+  // 7. 永乐票务
+  console.log('\n--- 第7站：永乐票务 ---');
+  const yongleResults = await crawlYongle();
+  allResults.push(...yongleResults);
+
+  // 8. 戏曲文化网站
+  console.log('\n--- 第8站：戏曲文化网站 ---');
   const operaSiteResults = await crawlOperaSites();
   allResults.push(...operaSiteResults);
 
@@ -758,7 +1032,7 @@ function generateSampleData() {
   ];
   const venues = {
     '北京': ['国家大剧院', '梅兰芳大剧院', '长安大戏院'],
-    '上海': ['上海大剧院', '天蟾逸夫舞台', '东方艺术中心'],
+    '上海': ['上海大剧院', '天蟾逸夫舞台', '东方艺术中心', '豫园·海上梨园'],
     '广州': ['广州大剧院', '友谊剧院'],
     '杭州': ['杭州大剧院', '浙江胜利剧院'],
     '成都': ['锦江剧场', '成都城市音乐厅'],
@@ -773,8 +1047,8 @@ function generateSampleData() {
   const playNames = [
     '《贵妃醉酒》', '《霸王别姬》', '《锁麟囊》', '《四郎探母》',
     '《梁山伯与祝英台》', '《红楼梦》', '《西厢记》',
-    '《花木兰》', '《穆桂英挂帅》',
-    '《白蛇传》', '《变脸》',
+    '《花木兰》', '《穆桂英挂帅》', '《孙悟空三打白骨精》',
+    '《白蛇传》', '《变脸》', '《打金砖》', '《断桥》',
     '《牡丹亭》', '《长生殿》', '《桃花扇》',
     '《帝女花》',
     '《三滴血》', '《火焰驹》',
@@ -784,7 +1058,7 @@ function generateSampleData() {
   const results = [];
   const now = new Date();
 
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 12; i++) {
     const city = cities[i % cities.length];
     const genre = genres[i % genres.length];
     const play = playNames[Math.floor(Math.random() * playNames.length)];
@@ -889,7 +1163,7 @@ async function main() {
     fs.writeFileSync(dataPath, JSON.stringify(merged, null, 2), 'utf8');
 
     console.log('\n' + '='.repeat(60));
-    console.log('[爬虫] 完成！');
+    console.log('[爬虫] v2.0 完成！');
     console.log('  总计: ' + merged.length + ' 条');
     console.log('  手动: ' + manualData.length + ' 条');
     console.log('  爬取: ' + recentCrawled.length + ' 条');
