@@ -160,8 +160,11 @@
 
         // 事件
         chart.on('mouseover', 'series', function(params) {
-            if (params.data && params.data._perf) {
-                showTooltip(params.data._perf, params.event.event);
+            if (params.data && params.data._perfs) {
+                showTooltip(params.data._perfs, params.data._address, params.event.event);
+            } else if (params.data && params.data._perf) {
+                // 向后兼容单个演出数据
+                showTooltip([params.data._perf], params.data._perf.address, params.event.event);
             }
         });
         chart.on('mouseout', 'series', function() {
@@ -179,17 +182,47 @@
         console.log('[地图] 初始化完成');
     }
 
+    // ========== 按坐标合并同一剧院的多场演出 ==========
+    function groupPerformancesByVenue(perfs) {
+        var groups = {};
+        perfs.forEach(function(p) {
+            var key = p.lng.toFixed(6) + ',' + p.lat.toFixed(6);
+            if (!groups[key]) {
+                groups[key] = { lng: p.lng, lat: p.lat, address: p.address, city: p.city, province: p.province, performances: [], bestStatus: null };
+            }
+            groups[key].performances.push(p);
+        });
+        // 确定每个组的"最佳状态"用于散点颜色（live > upcoming > ended）
+        Object.values(groups).forEach(function(g) {
+            var statuses = g.performances.map(function(p) { return p._status; });
+            if (statuses.indexOf('live') !== -1) g.bestStatus = 'live';
+            else if (statuses.indexOf('upcoming') !== -1) g.bestStatus = 'upcoming';
+            else g.bestStatus = 'ended';
+        });
+        return Object.values(groups);
+    }
+
     // ========== 更新地图数据 ==========
     function updateMapData() {
         if (!chart) return;
         var active = getActivePerformances();
+        var groups = groupPerformancesByVenue(active);
         var liveData = [], upcomingData = [], endedData = [];
 
-        active.forEach(function(p) {
-            var pt = { name: p.name, value: [p.lng, p.lat], _perf: p };
-            if (p._status === 'live') liveData.push(pt);
-            else if (p._status === 'upcoming') upcomingData.push(pt);
-            else if (p._status === 'ended') endedData.push(pt);
+        groups.forEach(function(g) {
+            var pt = {
+                name: g.performances.length > 1 ? (g.address + ' (' + g.performances.length + '场)') : g.address,
+                value: [g.lng, g.lat],
+                _perfs: g.performances,
+                _count: g.performances.length,
+                _address: g.address,
+                _city: g.city,
+                _province: g.province,
+                symbolSize: g.performances.length > 1 ? 18 : undefined
+            };
+            if (g.bestStatus === 'live') liveData.push(pt);
+            else if (g.bestStatus === 'upcoming') upcomingData.push(pt);
+            else endedData.push(pt);
         });
 
         chart.setOption({
@@ -211,18 +244,50 @@
     // ========== 底部演出列表 ==========
     function updatePerfList(active) {
         var list = document.getElementById('perfList');
-        var sorted = active.sort(function(a, b) {
-            var order = { live: 0, upcoming: 1, ended: 2 };
-            return order[a._status] - order[b._status];
+
+        // 按坐标分组
+        var groups = groupPerformancesByVenue(active);
+
+        // 按状态排序组
+        var orderMap = { live: 0, upcoming: 1, ended: 2 };
+        groups.sort(function(a, b) {
+            return orderMap[a.bestStatus] - orderMap[b.bestStatus];
         });
 
-        list.innerHTML = sorted.map(function(p) {
-            var color = p._status === 'live' ? '#ff4444' : p._status === 'upcoming' ? '#f5c518' : '#666';
-            return '<div class="perf-card" onclick="window._flyTo(' + p.lng + ',' + p.lat + ')" style="cursor:pointer">' +
-                '<span style="color:' + color + ';margin-right:4px;">●</span>' +
-                '<span class="pc-name">' + escapeHtml(p.name) + '</span>' +
-                '<div class="pc-info">' + escapeHtml(p.city) + ' · ' + p.startDate + '</div>' +
-                '</div>';
+        list.innerHTML = groups.map(function(g) {
+            var bestColor = g.bestStatus === 'live' ? '#ff4444' : g.bestStatus === 'upcoming' ? '#f5c518' : '#666';
+            var perfsHtml = '';
+
+            if (g.performances.length === 1) {
+                // 单场演出：简单卡片
+                var p = g.performances[0];
+                perfsHtml = '<div class="perf-card" onclick="window._flyTo(' + g.lng + ',' + g.lat + ')" style="cursor:pointer">' +
+                    '<span style="color:' + bestColor + ';margin-right:4px;">●</span>' +
+                    '<span class="pc-name">' + escapeHtml(p.name) + '</span>' +
+                    '<div class="pc-info">' + escapeHtml(p.city) + ' · ' + p.startDate + '</div>' +
+                    '</div>';
+            } else {
+                // 多场演出：分组卡片，可展开
+                var venueLabel = escapeHtml(g.address) + ' · ' + escapeHtml(g.city);
+                perfsHtml = '<div class="perf-card perf-group" onclick="window._flyTo(' + g.lng + ',' + g.lat + ')" style="cursor:pointer">' +
+                    '<span style="color:' + bestColor + ';margin-right:4px;">●</span>' +
+                    '<span class="pc-name">' + escapeHtml(g.address) + '</span>' +
+                    '<span class="pc-count">' + g.performances.length + '场演出</span>' +
+                    '<div class="pc-info">' + escapeHtml(g.city) + '</div>';
+
+                g.performances.sort(function(a, b) {
+                    return a.startDate.localeCompare(b.startDate);
+                }).forEach(function(p) {
+                    var pColor = p._status === 'live' ? '#ff4444' : p._status === 'upcoming' ? '#f5c518' : '#666';
+                    perfsHtml += '<div class="pc-sub-item">' +
+                        '<span style="color:' + pColor + ';font-size:10px;">●</span> ' +
+                        escapeHtml(p.name) + ' <span class="pc-sub-date">' + p.startDate + '~' + p.endDate + '</span>' +
+                        '</div>';
+                });
+
+                perfsHtml += '</div>';
+            }
+            return perfsHtml;
         }).join('');
     }
 
@@ -241,22 +306,57 @@
     };
 
     // ========== 悬浮提示 ==========
-    function showTooltip(perf, event) {
+    function showTooltip(perfs, venueName, event) {
         var stMap = {
             live: ['正在演出','live','#ff4444'],
             upcoming: ['即将演出','upcoming','#f5c518'],
             ended: ['已结束','ended','#666']
         };
-        var st = stMap[perf._status || 'upcoming'];
-        tooltip.innerHTML =
-            '<span class="tt-status ' + st[1] + '" style="background:' + st[2] + '"></span>' +
-            '<span style="color:' + st[2] + ';font-size:11px;">' + st[0] + '</span>' +
-            '<span class="tt-name">' + escapeHtml(perf.name) + '</span>' +
-            '<span class="tt-genre">' + escapeHtml(perf.genre || '戏曲') + '</span>' +
-            '<div class="tt-row">📍 ' + escapeHtml(perf.province) + ' ' + escapeHtml(perf.city) + ' · ' + escapeHtml(perf.address) + '</div>' +
-            '<div class="tt-row">📅 ' + perf.startDate + ' ~ ' + perf.endDate + '</div>' +
-            '<div class="tt-row">🎭 ' + escapeHtml(perf.troupe || '未知剧团') + '</div>' +
-            (perf.description ? '<div class="tt-desc">' + escapeHtml(perf.description) + '</div>' : '');
+
+        // 按日期排序：先开始的在前
+        var sorted = perfs.slice().sort(function(a, b) {
+            return a.startDate.localeCompare(b.startDate);
+        });
+
+        // 计算整体状态
+        var bestStatus = 'ended';
+        var hasLive = false, hasUpcoming = false;
+        sorted.forEach(function(p) {
+            if (p._status === 'live') hasLive = true;
+            else if (p._status === 'upcoming') hasUpcoming = true;
+        });
+        if (hasLive) bestStatus = 'live';
+        else if (hasUpcoming) bestStatus = 'upcoming';
+
+        var st = stMap[bestStatus];
+        var countBadge = sorted.length > 1 ? '<span class="tt-count-badge">共 ' + sorted.length + ' 场演出</span>' : '';
+
+        // 构建 HTML
+        var html = '<span class="tt-status ' + st[1] + '" style="background:' + st[2] + '"></span>' +
+            '<span style="color:' + st[2] + ';font-size:11px;">' + st[0] + '</span>' + countBadge +
+            '<div class="tt-venue">📍 ' + escapeHtml(venueName || sorted[0].address) + '</div>';
+
+        // 逐条列出每场演出
+        html += '<div class="tt-perf-list">';
+        sorted.forEach(function(p) {
+            var pst = stMap[p._status || 'upcoming'];
+            html += '<div class="tt-perf-item">' +
+                '<span class="tt-dot" style="background:' + pst[2] + '"></span>' +
+                '<div class="tt-perf-body">' +
+                '<span class="tt-perf-name">' + escapeHtml(p.name) + '</span>' +
+                '<span class="tt-perf-meta">' + escapeHtml(p.genre || '戏曲') + ' · ' + escapeHtml(p.troupe || '未知剧团') + '</span>' +
+                '<span class="tt-perf-date">📅 ' + p.startDate + ' ~ ' + p.endDate + '</span>' +
+                (p.actors ? '<span class="tt-perf-actors">👤 ' + escapeHtml(p.actors) + '</span>' : '') +
+                '</div></div>';
+        });
+        html += '</div>';
+
+        // 如果只有一场且有描述，显示描述
+        if (sorted.length === 1 && sorted[0].description) {
+            html += '<div class="tt-desc">' + escapeHtml(sorted[0].description) + '</div>';
+        }
+
+        tooltip.innerHTML = html;
         tooltip.classList.add('visible');
         if (event) positionTooltip(event.clientX, event.clientY);
     }

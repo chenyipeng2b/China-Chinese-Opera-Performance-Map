@@ -55,12 +55,18 @@ body {
 }
 
 .navbar-logo {
-  width: 42px; height: 42px;
-  border-radius: 12px;
+  width: 44px; height: 44px;
+  border-radius: 50%;
   object-fit: cover;
-  box-shadow: var(--shadow-glow);
-  background: rgba(255,255,255,0.05);
-  border: 1px solid var(--glass-border);
+  background: #E8E4D0;
+  border: 2px solid var(--gold);
+  box-shadow: 0 2px 8px rgba(245, 194, 138, 0.45);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.navbar-logo:hover {
+  transform: scale(1.06);
+  box-shadow: 0 4px 14px rgba(245, 194, 138, 0.7);
 }
 
 .navbar-title {
@@ -248,6 +254,68 @@ body {
   padding-top: 8px; margin-top: 8px;
 }
 
+/* 多演出悬浮卡片 */
+.tt-count-badge {
+  display: inline-block;
+  background: rgba(201,169,110,0.2);
+  color: var(--gold);
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  margin-left: 6px;
+}
+.tt-venue {
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: bold;
+  margin: 8px 0 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(201,169,110,0.2);
+}
+.tt-perf-list {
+  max-height: 280px;
+  overflow-y: auto;
+}
+.tt-perf-item {
+  display: flex;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(201,169,110,0.08);
+}
+.tt-perf-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.tt-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+.tt-perf-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+.tt-perf-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.tt-perf-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.tt-perf-date {
+  font-size: 11px;
+  color: var(--gold-dark);
+}
+.tt-perf-actors {
+  font-size: 11px;
+  color: var(--gold-dark);
+}
+
 /* 底部演出条 */
 .perf-bar {
   background: rgba(10,14,23,0.95);
@@ -281,6 +349,34 @@ body {
 .perf-card:hover { border-color: var(--gold); }
 .pc-name { color: var(--text-primary); font-weight: bold; }
 .pc-info { color: var(--text-muted); font-size: 11px; margin-top: 2px; }
+
+/* 多演出分组卡片 */
+.perf-group {
+  min-width: 200px;
+  max-width: 280px;
+}
+.pc-count {
+  display: inline-block;
+  background: rgba(201,169,110,0.15);
+  color: var(--gold);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.pc-sub-item {
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 3px 0 0 4px;
+  margin-top: 2px;
+  border-top: 1px solid rgba(201,169,110,0.06);
+  line-height: 1.4;
+}
+.pc-sub-date {
+  color: var(--text-muted);
+  font-size: 10px;
+}
 
 /* 页脚 */
 .footer {

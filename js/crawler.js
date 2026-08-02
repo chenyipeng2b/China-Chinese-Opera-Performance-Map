@@ -310,6 +310,28 @@ function extractTroupe(text) {
   return '待确认';
 }
 
+
+function extractActors(text) {
+  // 从文本中提取演员名字
+  const patterns = [
+    /主演[：:]\s*([^\s,，。\n]{2,40})/g,
+    /演员[：:]\s*([^\s,，。\n]{2,40})/g,
+    /表演[：:]\s*([^\s,，。\n]{2,40})/g,
+    /领衔[：:]\s*([^\s,，。\n]{2,40})/g,
+    /出演[：:]\s*([^\s,，。\n]{2,40})/g,
+    /([^\s]{2,3})(?:饰|饰演)([^\s,，。]{2,4})/g,
+    /著名.*?演员[：:]*\s*([^\s,，。\n]{2,20})/g
+  ];
+  for (const p of patterns) {
+    const matches = [...text.matchAll(p)];
+    if (matches.length > 0) {
+      const raw = matches[0][1] || matches[0][0];
+      return cleanText(raw).substring(0, 60).trim();
+    }
+  }
+  return '';
+}
+
 // ==================== 1. 百度搜索 ====================
 async function crawlBaiduSearch() {
   console.log('[百度搜索] 搜索戏曲演出信息...');
@@ -513,6 +535,7 @@ function processSearchSnippet(results, text, query, platform) {
     startDate: date,
     endDate: extractEndDate(text, date),
     troupe: extractTroupe(text),
+    actors: extractActors(text),
     description: text.substring(0, 150) || '来自' + platform + '搜索',
     lng: coords.lng,
     lat: coords.lat,
@@ -952,6 +975,314 @@ async function crawlOperaSites() {
   return results;
 }
 
+
+// ==================== 9. B站搜索 API ====================
+async function crawlBilibili() {
+  console.log('[B站API] 搜索戏曲演出信息...');
+  const results = [];
+  const searchQueries = ['戏曲演出', '京剧演出', '越剧演出', '昆曲演出'];
+
+  for (const query of searchQueries) {
+    try {
+      const url = 'https://api.bilibili.com/x/web-interface/search/type?search_type=video&keyword=' +
+        encodeURIComponent(query) + '&page=1&order=pubdate';
+      const jsonStr = await httpGet(url, {
+        headers: {
+          'Referer': 'https://www.bilibili.com/',
+          'Accept': 'application/json, text/plain, */*'
+        }
+      });
+
+      if (!jsonStr || jsonStr.length < 50) continue;
+
+      const json = JSON.parse(jsonStr);
+      if (json.code !== 0 || !json.data || !json.data.result) {
+        console.log('[B站API] "' + query + '" 返回异常, code=' + (json.code || 'unknown'));
+        continue;
+      }
+
+      const items = json.data.result || [];
+      let count = 0;
+      for (const item of items) {
+        if (count >= 5) break;
+
+        const title = cleanText(item.title || '');
+        const desc = cleanText(item.description || '');
+        const tag = cleanText(item.tag || '');
+        const fullText = title + ' ' + desc + ' ' + tag;
+
+        const isOpera = GENRE_KEYWORDS.some(g => fullText.includes(g)) ||
+          /演出|戏曲|剧场|剧院|巡演|开票|上演|折子戏/.test(fullText);
+
+        if (!isOpera || title.length < 4) continue;
+
+        const city = extractCity(fullText);
+        const coords = getCoords(city);
+        const date = extractDate(fullText);
+
+        results.push({
+          id: 'bl_' + Date.now() + '_' + results.length,
+          name: extractTitle(fullText) || title.substring(0, 60),
+          genre: extractGenre(fullText),
+          province: getProvince(city),
+          city: city,
+          address: extractVenue(fullText) || (city + '剧院'),
+          startDate: date,
+          endDate: extractEndDate(fullText, date),
+          troupe: extractTroupe(fullText),
+          actors: extractActors(fullText),
+          description: desc.substring(0, 150) || '来自B站视频信息',
+          lng: coords.lng,
+          lat: coords.lat,
+          source: 'crawled',
+          sourcePlatform: 'B站'
+        });
+        count++;
+      }
+
+      console.log('[B站API] "' + query + '" 解析出 ' + count + ' 条');
+      await new Promise(r => setTimeout(r, 2000));
+    } catch (error) {
+      console.error('[B站API] "' + query + '" 失败:', error.message);
+    }
+  }
+
+  return results;
+}
+
+// ==================== 10. 微博搜索 ====================
+async function crawlWeibo() {
+  console.log('[微博搜索] 搜索戏曲演出信息...');
+  const results = [];
+  const searchQueries = ['戏曲演出', '京剧演出', '越剧演出'];
+
+  for (const query of searchQueries) {
+    try {
+      const url = 'https://s.weibo.com/weibo?q=' + encodeURIComponent(query) + '&typeall=1&suball=1&timescope=custom:2026-01-01:2027-01-01&Refer=g';
+      const html = await httpGet(url, {
+        headers: {
+          'Referer': 'https://s.weibo.com/',
+          'Accept-Language': 'zh-CN,zh;q=0.9',
+          'Cookie': 'SUB=_2AkMRJxXQf8NxqwJRmP4dyGniaY1zzQzEieKkVZgJRMxHRl-yT9kqmgHptRB6OZUQ2NvtFxMCUeJpQf6cG9xJ1bRgU2NE'
+        }
+      });
+
+      if (!html || html.length < 500) {
+        console.log('[微博搜索] "' + query + '" 返回内容不足');
+        continue;
+      }
+
+      const cardRegex = /<div[^>]*class="[^"]*card-wrap[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>/gi;
+      const cards = html.match(cardRegex) || [];
+
+      if (cards.length === 0) {
+        const altRegex = /<p[^>]*class="[^"]*txt[^"]*"[^>]*>([\s\S]*?)<\/p>/gi;
+        const altCards = html.match(altRegex) || [];
+        for (const card of altCards) {
+          const cardText = cleanText(card);
+          if (cardText.length < 8) continue;
+          processSearchSnippet(results, cardText, query, '微博');
+        }
+        console.log('[微博搜索] "' + query + '" 片段模式解析');
+        continue;
+      }
+
+      let count = 0;
+      for (const card of cards) {
+        if (count >= 5) break;
+
+        const text = cleanText(card);
+        const isOpera = GENRE_KEYWORDS.some(g => text.includes(g)) ||
+          /演出|戏曲|剧场|剧院|巡演|开票|上演|折子戏/.test(text);
+
+        if (!isOpera || text.length < 10) continue;
+
+        const name = extractTitle(text);
+        if (!name || name.length < 3) continue;
+
+        const city = extractCity(text);
+        const coords = getCoords(city);
+        const date = extractDate(text);
+
+        results.push({
+          id: 'wb_' + Date.now() + '_' + results.length,
+          name: name,
+          genre: extractGenre(text),
+          province: getProvince(city),
+          city: city,
+          address: extractVenue(text) || (city + '剧院'),
+          startDate: date,
+          endDate: extractEndDate(text, date),
+          troupe: extractTroupe(text),
+          actors: extractActors(text),
+          description: text.substring(0, 150) || '来自微博搜索',
+          lng: coords.lng,
+          lat: coords.lat,
+          source: 'crawled',
+          sourcePlatform: '微博'
+        });
+        count++;
+      }
+
+      console.log('[微博搜索] "' + query + '" 解析出 ' + count + ' 条');
+      await new Promise(r => setTimeout(r, 3000));
+    } catch (error) {
+      console.error('[微博搜索] "' + query + '" 失败:', error.message);
+    }
+  }
+
+  return results;
+}
+
+// ==================== 11. 百度 site:douyin.com 定向搜索 ====================
+async function crawlDouyinViaBaidu() {
+  console.log('[百度→抖音] 通过百度 site:douyin.com 搜索戏曲演出...');
+  const results = [];
+  const searchQueries = [
+    'site:douyin.com 戏曲演出',
+    'site:douyin.com 京剧演出',
+    'site:douyin.com 越剧演出',
+    'site:douyin.com 昆曲演出'
+  ];
+
+  for (const query of searchQueries) {
+    try {
+      const url = 'https://www.baidu.com/s?wd=' + encodeURIComponent(query) + '&ie=utf-8&rn=10';
+      const html = await httpGet(url, {
+        headers: {
+          'Referer': 'https://www.baidu.com/',
+          'Accept-Language': 'zh-CN,zh;q=0.9'
+        }
+      });
+
+      if (!html || html.length < 500) continue;
+
+      const snippetRegex = /<span[^>]*class="[^"]*content-right_[^"]*"[^>]*>([\s\S]*?)<\/span>/gi;
+      const snippets = html.match(snippetRegex) || [];
+
+      let count = 0;
+      for (const snippet of snippets) {
+        if (count >= 5) break;
+        const text = cleanText(snippet);
+        if (text.length < 8) continue;
+
+        const isOpera = GENRE_KEYWORDS.some(g => text.includes(g)) ||
+          /演出|戏曲|剧场|剧院|巡演|开票|上演|折子戏/.test(text);
+
+        if (!isOpera) continue;
+
+        const name = extractTitle(text);
+        if (!name || name.length < 3) continue;
+
+        const city = extractCity(text);
+        const coords = getCoords(city);
+        const date = extractDate(text);
+
+        results.push({
+          id: 'dy_' + Date.now() + '_' + results.length,
+          name: name,
+          genre: extractGenre(text),
+          province: getProvince(city),
+          city: city,
+          address: extractVenue(text) || (city + '剧院'),
+          startDate: date,
+          endDate: extractEndDate(text, date),
+          troupe: extractTroupe(text),
+          actors: extractActors(text),
+          description: text.substring(0, 150) || '来自抖音公开信息',
+          lng: coords.lng,
+          lat: coords.lat,
+          source: 'crawled',
+          sourcePlatform: '抖音'
+        });
+        count++;
+      }
+
+      console.log('[百度→抖音] "' + query + '" 解析出 ' + count + ' 条');
+      await new Promise(r => setTimeout(r, 2500));
+    } catch (error) {
+      console.error('[百度→抖音] "' + query + '" 失败:', error.message);
+    }
+  }
+
+  return results;
+}
+
+// ==================== 12. Bing site:xiaohongshu.com 定向搜索 ====================
+async function crawlXiaohongshuViaBing() {
+  console.log('[Bing→小红书] 通过Bing site:xiaohongshu.com 搜索戏曲演出...');
+  const results = [];
+  const searchQueries = [
+    'site:xiaohongshu.com 戏曲演出',
+    'site:xiaohongshu.com 京剧演出',
+    'site:xiaohongshu.com 越剧演出',
+    'site:xiaohongshu.com 昆曲演出'
+  ];
+
+  for (const query of searchQueries) {
+    try {
+      const url = 'https://www.bing.com/search?q=' + encodeURIComponent(query) + '&setlang=zh-cn&count=10';
+      const html = await httpGet(url, {
+        headers: {
+          'Referer': 'https://www.bing.com/',
+          'Accept-Language': 'zh-CN,zh;q=0.9'
+        }
+      });
+
+      if (!html || html.length < 500) continue;
+
+      const snippetRegex = /<p[^>]*class="[^"]*b_lineclamp[^"]*"[^>]*>([\s\S]*?)<\/p>/gi;
+      const snippets = html.match(snippetRegex) || [];
+
+      let count = 0;
+      for (const snippet of snippets) {
+        if (count >= 5) break;
+        const text = cleanText(snippet);
+        if (text.length < 8) continue;
+
+        const isOpera = GENRE_KEYWORDS.some(g => text.includes(g)) ||
+          /演出|戏曲|剧场|剧院|巡演|开票|上演|折子戏/.test(text);
+
+        if (!isOpera) continue;
+
+        const name = extractTitle(text);
+        if (!name || name.length < 3) continue;
+
+        const city = extractCity(text);
+        const coords = getCoords(city);
+        const date = extractDate(text);
+
+        results.push({
+          id: 'xhs_' + Date.now() + '_' + results.length,
+          name: name,
+          genre: extractGenre(text),
+          province: getProvince(city),
+          city: city,
+          address: extractVenue(text) || (city + '剧院'),
+          startDate: date,
+          endDate: extractEndDate(text, date),
+          troupe: extractTroupe(text),
+          actors: extractActors(text),
+          description: text.substring(0, 150) || '来自小红书公开信息',
+          lng: coords.lng,
+          lat: coords.lat,
+          source: 'crawled',
+          sourcePlatform: '小红书'
+        });
+        count++;
+      }
+
+      console.log('[Bing→小红书] "' + query + '" 解析出 ' + count + ' 条');
+      await new Promise(r => setTimeout(r, 2500));
+    } catch (error) {
+      console.error('[Bing→小红书] "' + query + '" 失败:', error.message);
+    }
+  }
+
+  return results;
+}
+
+
 // ==================== 主流程 ====================
 async function crawlAll() {
   console.log('='.repeat(60));
@@ -1009,6 +1340,26 @@ async function crawlAll() {
   console.log('\n--- 第8站：戏曲文化网站 ---');
   const operaSiteResults = await crawlOperaSites();
   allResults.push(...operaSiteResults);
+
+  // 9. B站API搜索
+  console.log('\n--- 第9站：B站 ---');
+  const bilibiliResults = await crawlBilibili();
+  allResults.push(...bilibiliResults);
+
+  // 10. 微博搜索
+  console.log('\n--- 第10站：微博 ---');
+  const weiboResults = await crawlWeibo();
+  allResults.push(...weiboResults);
+
+  // 11. 百度→抖音
+  console.log('\n--- 第11站：抖音（百度site搜索） ---');
+  const douyinResults = await crawlDouyinViaBaidu();
+  allResults.push(...douyinResults);
+
+  // 12. Bing→小红书
+  console.log('\n--- 第12站：小红书（Bing site搜索） ---');
+  const xiaohongshuResults = await crawlXiaohongshuViaBing();
+  allResults.push(...xiaohongshuResults);
 
   console.log('\n[爬虫] 总计爬取 ' + allResults.length + ' 条');
 
@@ -1102,6 +1453,7 @@ function normalizeData(item) {
     startDate: item.startDate || extractDate(item.name || ''),
     endDate: item.endDate || item.startDate || extractDate(item.name || ''),
     troupe: item.troupe || '待确认',
+    actors: item.actors || '',
     description: (item.description || '').substring(0, 200).trim(),
     lng: item.lng || getCoords(item.city || '').lng,
     lat: item.lat || getCoords(item.city || '').lat,
