@@ -1,3 +1,3 @@
-# 确保 GeoJSON 和 JSON 文件不会被 Git 修改编码/换行符
-*.json binary
-*.geojson binary
+# 确保 JSON 文件不会被 Git 修改换行符，但不标记为 binary（避免影响 GitHub Pages 服务）
+data/*.json -text
+*.geojson -text

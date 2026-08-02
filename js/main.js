@@ -13,27 +13,29 @@
 
     // ========== 加载 GeoJSON ==========
     async function loadGeoJson() {
-        // 本地优先
-        try {
-            var resp = await fetch('data/china.json');
-            if (resp.ok) {
-                geoJson = await resp.json();
-                console.log('[地图] GeoJSON 本地加载成功 (' + geoJson.features.length + '个区域)');
-                return true;
-            }
-        } catch(e) { /* 继续尝试在线源 */ }
+        // 多源回退：本地优先，再尝试多个在线CDN
+        var sources = [
+            { url: 'data/china.json', name: '本地' },
+            { url: 'https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json', name: '阿里DataV' },
+            { url: 'https://geojson.cn/api/data/china-geojson/china.json', name: 'GeoJSON.cn' }
+        ];
 
-        // 在线兜底
-        try {
-            var resp2 = await fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json');
-            if (!resp2.ok) throw new Error('HTTP ' + resp2.status);
-            geoJson = await resp2.json();
-            console.log('[地图] GeoJSON 在线加载成功 (' + geoJson.features.length + '个区域)');
-            return true;
-        } catch(e) {
-            console.error('[地图] GeoJSON 加载失败:', e);
-            return false;
+        for (var i = 0; i < sources.length; i++) {
+            var src = sources[i];
+            try {
+                var resp = await fetch(src.url);
+                if (!resp.ok) throw new Error('HTTP ' + resp.status + ' ' + resp.statusText);
+                var text = await resp.text();
+                geoJson = JSON.parse(text);
+                console.log('[地图] ' + src.name + ' 加载成功 (' + geoJson.features.length + '个区域)');
+                return true;
+            } catch(e) {
+                console.warn('[地图] ' + src.name + ' 源失败 (' + src.url + '):', e.message);
+            }
         }
+
+        console.error('[地图] 所有源均加载失败，地图不可用');
+        return false;
     }
 
     // ========== 加载演出数据 ==========
@@ -286,20 +288,40 @@
         });
     });
 
+    // ========== 更新统计数据（不含地图） ==========
+    function updateStats() {
+        var active = getActivePerformances();
+        var liveCount = 0, upcomingCount = 0, endedCount = 0;
+        active.forEach(function(p) {
+            if (p._status === 'live') liveCount++;
+            else if (p._status === 'upcoming') upcomingCount++;
+            else if (p._status === 'ended') endedCount++;
+        });
+        document.getElementById('sLive').textContent = liveCount;
+        document.getElementById('sUpcoming').textContent = upcomingCount;
+        document.getElementById('sEnded').textContent = endedCount;
+        document.getElementById('sTotal').textContent = active.length;
+    }
+
     // ========== 主初始化 ==========
     async function main() {
-        var ok = await loadGeoJson();
-        if (!ok) {
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('error').style.display = 'flex';
-            document.getElementById('errorMsg').textContent = '无法加载中国地图数据，请检查网络连接后刷新页面。';
-            return;
-        }
+        // 并行加载 GeoJSON 和演出数据，不相互阻塞
+        var geoOk = await loadGeoJson();
         await loadPerformances();
-        initChart();
-        updateMapData();
+
+        if (geoOk) {
+            initChart();
+            updateMapData();
+        } else {
+            // 渐进式降级：地图不可用但演出数据正常展示
+            document.getElementById('error').style.display = 'flex';
+            document.getElementById('errorMsg').textContent = '地图数据加载失败，请刷新页面重试。演出数据已正常加载。';
+            updateStats();
+            updatePerfList(getActivePerformances());
+        }
+
         document.getElementById('loading').style.display = 'none';
-        console.log('[系统] 中国戏曲演出地图启动完成');
+        console.log('[系统] 中国戏曲演出地图启动完成 (地图:' + (geoOk ? '可用' : '降级') + ', 演出:' + allPerformances.length + '条)');
     }
 
     main();
