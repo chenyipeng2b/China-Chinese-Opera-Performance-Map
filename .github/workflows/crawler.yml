@@ -2,8 +2,8 @@ name: 戏曲演出数据爬取
 
 on:
   schedule:
-    # 每天北京时间 6:00 / 12:00 / 18:00 / 22:00 执行
-    - cron: '0 22,4,10,16 * * *'
+    # 每小时执行一次（北京时间每天 0:00-23:00）
+    - cron: '0 * * * *'
   # 手动触发
   workflow_dispatch:
 
@@ -13,6 +13,7 @@ jobs:
     
     permissions:
       contents: write
+      actions: write
     
     steps:
       - name: 检出代码
