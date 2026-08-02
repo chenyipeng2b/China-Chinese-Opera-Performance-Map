@@ -216,18 +216,27 @@
     var filters = { live: true, upcoming: true, ended: true };
     var tooltip = document.getElementById('tooltip');
 
-    // ========== 加载 GeoJSON ==========
+    // ========== 加载 GeoJSON（本地优先，在线兜底） ==========
+    var GEOJSON_URLS = [
+        'data/china.json',
+        'https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json'
+    ];
+
     async function loadGeoJson() {
-        try {
-            var resp = await fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json');
-            if (!resp.ok) throw new Error('HTTP ' + resp.status);
-            geoJson = await resp.json();
-            console.log('[地图] GeoJSON 加载成功 (' + geoJson.features.length + '个区域)');
-            return true;
-        } catch(e) {
-            console.error('[地图] GeoJSON 加载失败:', e);
-            return false;
+        for (var i = 0; i < GEOJSON_URLS.length; i++) {
+            try {
+                console.log('[地图] 尝试加载 GeoJSON: ' + GEOJSON_URLS[i]);
+                var resp = await fetch(GEOJSON_URLS[i]);
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                geoJson = await resp.json();
+                console.log('[地图] GeoJSON 加载成功 (' + geoJson.features.length + '个区域)');
+                return true;
+            } catch(e) {
+                console.warn('[地图] 源 ' + (i+1) + ' 失败: ' + e.message);
+            }
         }
+        console.error('[地图] 所有 GeoJSON 源均加载失败');
+        return false;
     }
 
     // ========== 加载演出数据 ==========
