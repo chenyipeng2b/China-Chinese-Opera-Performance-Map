@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中国戏曲演出地图</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- 背景装饰 -->
+    <div class="bg-pattern"></div>
+
+    <!-- 顶部标题栏 -->
+    <header class="header">
+        <div class="header-inner">
+            <div class="logo-area">
+                <span class="logo-icon">🎭</span>
+                <h1 class="title">中国戏曲演出地图</h1>
+                <span class="subtitle">China Chinese Opera Performance Map</span>
+            </div>
+            <div class="header-right">
+                <div class="live-indicator" id="liveIndicator">
+                    <span class="live-dot"></span>
+                    <span>实时更新</span>
+                </div>
+                <a href="admin.html" class="btn-admin">管理演出</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="main-container">
+        <!-- 左侧面板 -->
+        <aside class="side-panel left-panel">
+            <div class="panel-card legend-card">
+                <h3>图例说明</h3>
+                <div class="legend-list">
+                    <div class="legend-item">
+                        <span class="legend-dot red-dot"></span>
+                        <div>
+                            <strong>正在演出</strong>
+                            <small>正在进行中的演出</small>
+                        </div>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot yellow-dot"></span>
+                        <div>
+                            <strong>即将演出</strong>
+                            <small>未来安排好的演出</small>
+                        </div>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot black-dot"></span>
+                        <div>
+                            <strong>已结束</strong>
+                            <small>结束3天后自动消失</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-card stats-card">
+                <h3>演出统计</h3>
+                <div class="stat-grid">
+                    <div class="stat-item">
+                        <span class="stat-num red" id="statOngoing">0</span>
+                        <span class="stat-label">演出中</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-num yellow" id="statUpcoming">0</span>
+                        <span class="stat-label">即将开始</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-num gray" id="statEnded">0</span>
+                        <span class="stat-label">已结束</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-num" id="statTotal">0</span>
+                        <span class="stat-label">总计</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-card filter-card">
+                <h3>筛选条件</h3>
+                <div class="filter-tags">
+                    <label class="filter-tag active" data-filter="all">
+                        <input type="checkbox" checked> 全部
+                    </label>
+                    <label class="filter-tag" data-filter="ongoing">
+                        <input type="checkbox" checked> 演出中
+                    </label>
+                    <label class="filter-tag" data-filter="upcoming">
+                        <input type="checkbox" checked> 即将演出
+                    </label>
+                    <label class="filter-tag" data-filter="ended">
+                        <input type="checkbox" checked> 已结束
+                    </label>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 地图区域 -->
+        <section class="map-section">
+            <div class="map-container" id="mapContainer">
+                <div class="map-loading" id="mapLoading">
+                    <div class="loading-spinner"></div>
+                    <p>正在加载中国地图数据...</p>
+                </div>
+            </div>
+
+            <!-- 底部演出列表 -->
+            <div class="performance-bar" id="performanceBar">
+                <div class="bar-header">
+                    <h4>近期演出</h4>
+                    <span class="bar-count" id="barCount">0 场</span>
+                </div>
+                <div class="bar-list" id="barList">
+                    <!-- 动态填充 -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 右侧演出详情 -->
+        <aside class="side-panel right-panel" id="detailPanel">
+            <div class="panel-card detail-card" id="detailCard">
+                <div class="detail-placeholder">
+                    <div class="placeholder-icon">📍</div>
+                    <p>点击地图亮点<br>查看演出详情</p>
+                </div>
+            </div>
+
+            <div class="panel-card near-card">
+                <h3>即将开始的演出</h3>
+                <div class="near-list" id="nearList">
+                    <!-- 动态填充 -->
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- 底部信息 -->
+    <footer class="footer">
+        <p>数据来源：网络爬取 + 用户贡献 &nbsp;|&nbsp; Powered by GitHub Pages</p>
+    </footer>
+
+    <script src="js/data.js"></script>
+    <script src="js/map.js"></script>
+    <script>
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function () {
+            OperaMap.init();
+        });
+    </script>
+</body>
+</html>
