@@ -4,171 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>中国戏曲演出地图</title>
-    <!-- 加载 Google Fonts 中文字体，确保所有浏览器都能正确渲染中文 -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Noto Sans SC', 'Microsoft YaHei', 'PingFang SC', 'SimHei', sans-serif;
-            background: #0a0e17;
-            color: #d4c5a0;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-        .header {
-            background: linear-gradient(180deg, rgba(20,15,10,0.95) 0%, rgba(10,14,23,0.9) 100%);
-            border-bottom: 1px solid rgba(201,169,110,0.2);
-            padding: 12px 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: relative;
-            z-index: 100;
-        }
-        .header h1 {
-            font-size: 22px;
-            color: #c9a96e;
-            letter-spacing: 3px;
-            font-weight: normal;
-        }
-        .header .subtitle { font-size: 11px; color: #6a5c3c; margin-left: 8px; }
-        .header-right { display: flex; gap: 16px; align-items: center; }
-        .live-dot {
-            display: inline-block; width: 8px; height: 8px;
-            background: #ff4444; border-radius: 50%;
-            animation: pulse 1.5s infinite; margin-right: 6px;
-        }
-        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
-        .btn-admin {
-            background: #c9a96e; color: #0a0e17; border: none;
-            padding: 6px 16px; cursor: pointer; border-radius: 4px;
-            font-size: 13px; text-decoration: none;
-        }
-        .btn-admin:hover { background: #d4b87c; }
-        .main-container { display: flex; height: calc(100vh - 55px); }
-        .side-panel {
-            width: 260px; padding: 16px;
-            background: rgba(10,14,23,0.8);
-            border-right: 1px solid rgba(201,169,110,0.1);
-            overflow-y: auto;
-        }
-        .panel-card {
-            background: rgba(22,33,62,0.6);
-            border: 1px solid rgba(201,169,110,0.15);
-            border-radius: 8px; padding: 14px; margin-bottom: 14px;
-        }
-        .panel-card h3 {
-            color: #c9a96e; font-size: 14px; margin-bottom: 12px;
-            padding-bottom: 8px; border-bottom: 1px solid rgba(201,169,110,0.15);
-        }
-        .legend-item {
-            display: flex; align-items: center; gap: 10px;
-            padding: 8px 0; font-size: 13px;
-        }
-        .legend-item strong { display: block; color: #e0d5b8; }
-        .legend-item small { color: #7a6e56; font-size: 11px; }
-        .legend-dot {
-            width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
-            box-shadow: 0 0 10px currentColor;
-        }
-        .legend-dot.red { background: #ff4444; }
-        .legend-dot.yellow { background: #f5c518; }
-        .legend-dot.black { background: #666; }
-        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .stat-item { text-align: center; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 6px; }
-        .stat-num { display: block; font-size: 24px; font-weight: bold; }
-        .stat-num.red { color: #ff4444; } .stat-num.yellow { color: #f5c518; }
-        .stat-num.gray { color: #888; }
-        .stat-label { font-size: 11px; color: #7a6e56; }
-        .filter-tag {
-            display: flex; align-items: center; gap: 6px;
-            padding: 6px 10px; margin: 3px 0; cursor: pointer;
-            font-size: 12px; border-radius: 4px; color: #999;
-        }
-        .filter-tag.active { background: rgba(201,169,110,0.1); color: #c9a96e; }
-        .map-section { flex: 1; position: relative; }
-        #mapChart { width: 100%; height: 100%; }
-        .loading-overlay {
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(10,14,23,0.9); display: flex;
-            flex-direction: column; align-items: center; justify-content: center;
-            z-index: 10;
-        }
-        .loading-spinner {
-            width: 40px; height: 40px; border: 3px solid #333;
-            border-top-color: #c9a96e; border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .loading-overlay p { margin-top: 12px; color: #7a6e56; font-size: 13px; }
-        .error-overlay {
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(10,14,23,0.95); display: none;
-            flex-direction: column; align-items: center; justify-content: center;
-            z-index: 20; text-align: center;
-        }
-        .error-overlay h2 { color: #ff4444; margin-bottom: 8px; }
-        .error-overlay p { color: #999; max-width: 400px; font-size: 13px; line-height: 1.8; }
-        .info-tooltip {
-            position: fixed; z-index: 200; pointer-events: none;
-            background: rgba(22,33,62,0.95); border: 1px solid rgba(201,169,110,0.4);
-            border-radius: 8px; padding: 12px; min-width: 200px; max-width: 300px;
-            display: none; color: #d4c5a0; font-size: 13px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-        }
-        .info-tooltip.visible { display: block; }
-        .info-tooltip .tt-status { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
-        .info-tooltip .tt-status.live { background: #ff4444; }
-        .info-tooltip .tt-status.upcoming { background: #f5c518; }
-        .info-tooltip .tt-status.ended { background: #666; }
-        .info-tooltip .tt-name { font-size: 15px; font-weight: bold; color: #e0d5b8; display: block; margin: 4px 0; }
-        .info-tooltip .tt-genre { background: rgba(201,169,110,0.2); padding: 1px 6px; border-radius: 3px; font-size: 11px; }
-        .info-tooltip .tt-row { margin: 4px 0; color: #a08c5e; font-size: 12px; }
-        .info-tooltip .tt-desc { color: #8a7a5c; font-size: 11px; border-top: 1px solid rgba(201,169,110,0.15); padding-top: 6px; margin-top: 6px; }
-        .perf-bar {
-            background: rgba(10,14,23,0.95); border-top: 1px solid rgba(201,169,110,0.15);
-            padding: 10px; max-height: 150px; overflow: hidden;
-        }
-        .perf-bar-title { color: #c9a96e; font-size: 13px; margin-bottom: 6px; }
-        .perf-list { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
-        .perf-card {
-            flex-shrink: 0; padding: 6px 12px; background: rgba(22,33,62,0.5);
-            border: 1px solid rgba(201,169,110,0.15); border-radius: 6px;
-            font-size: 12px; cursor: pointer; min-width: 160px;
-        }
-        .perf-card:hover { border-color: #c9a96e; }
-        .perf-card .pc-name { color: #e0d5b8; font-weight: bold; }
-        .perf-card .pc-info { color: #7a6e56; font-size: 11px; margin-top: 2px; }
-        .footer {
-            text-align: center; padding: 6px; font-size: 11px;
-            color: #4a3e2e; background: rgba(10,14,23,0.8);
-            border-top: 1px solid rgba(201,169,110,0.1);
-        }
-    </style>
 </head>
 <body>
-    <header class="header">
-        <div>
-            <h1>🎭 中国戏曲演出地图 <span class="subtitle">China Opera Map</span></h1>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <div class="navbar-logo">🎭</div>
+            <span class="navbar-title">中国戏曲演出地图</span>
         </div>
-        <div class="header-right">
-            <div><span class="live-dot"></span>实时更新</div>
-            <a href="admin.html" class="btn-admin">管理演出</a>
+        <div class="navbar-actions">
+            <a href="admin.html" class="btn btn-outline">📝 管理演出</a>
         </div>
-    </header>
+    </nav>
 
     <div class="main-container">
         <!-- 左侧面板 -->
         <aside class="side-panel">
             <div class="panel-card">
-                <h3>图例说明</h3>
+                <h3>🎨 图例说明</h3>
                 <div class="legend-item"><span class="legend-dot red"></span><div><strong>正在演出</strong><small>进行中</small></div></div>
                 <div class="legend-item"><span class="legend-dot yellow"></span><div><strong>即将演出</strong><small>已排期</small></div></div>
                 <div class="legend-item"><span class="legend-dot black"></span><div><strong>已结束</strong><small>3天后消失</small></div></div>
             </div>
             <div class="panel-card">
-                <h3>演出统计</h3>
+                <h3>📊 演出统计</h3>
                 <div class="stat-grid">
                     <div class="stat-item"><span class="stat-num red" id="sLive">0</span><span class="stat-label">演出中</span></div>
                     <div class="stat-item"><span class="stat-num yellow" id="sUpcoming">0</span><span class="stat-label">即将开始</span></div>
@@ -177,7 +39,7 @@
                 </div>
             </div>
             <div class="panel-card">
-                <h3>筛选</h3>
+                <h3>🔍 筛选</h3>
                 <label class="filter-tag active"><input type="checkbox" checked data-filter="all"> 全部</label>
                 <label class="filter-tag active"><input type="checkbox" checked data-filter="live"> 演出中</label>
                 <label class="filter-tag active"><input type="checkbox" checked data-filter="upcoming"> 即将演出</label>
@@ -187,15 +49,21 @@
 
         <!-- 地图区域 -->
         <section class="map-section">
-            <div class="loading-overlay" id="loading"><div class="loading-spinner"></div><p>正在加载中国地图数据...</p></div>
-            <div class="error-overlay" id="error"><h2>加载失败</h2><p id="errorMsg"></p></div>
+            <div class="loading-overlay" id="loading">
+                <div class="loading-spinner"></div>
+                <p>正在加载中国地图数据...</p>
+            </div>
+            <div class="error-overlay" id="error">
+                <h2>⚠️ 加载失败</h2>
+                <p id="errorMsg"></p>
+            </div>
             <div id="mapChart"></div>
         </section>
     </div>
 
     <!-- 底部演出条 -->
     <div class="perf-bar">
-        <div class="perf-bar-title">近期演出</div>
+        <div class="perf-bar-title">📅 近期演出</div>
         <div class="perf-list" id="perfList"></div>
     </div>
 
@@ -206,300 +74,6 @@
     <!-- 悬浮提示 -->
     <div class="info-tooltip" id="tooltip"></div>
 
-<script>
-// ==================== 中国戏曲演出地图 - 完整逻辑 ====================
-
-(function() {
-    'use strict';
-
-    var chart = null;
-    var geoJson = null;
-    var allPerformances = [];
-    var filters = { live: true, upcoming: true, ended: true };
-    var tooltip = document.getElementById('tooltip');
-
-    // ========== 加载 GeoJSON（本地优先，在线兜底） ==========
-    var GEOJSON_URLS = [
-        'data/china.json',
-        'https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json'
-    ];
-
-    async function loadGeoJson() {
-        for (var i = 0; i < GEOJSON_URLS.length; i++) {
-            try {
-                console.log('[地图] 尝试加载 GeoJSON: ' + GEOJSON_URLS[i]);
-                var resp = await fetch(GEOJSON_URLS[i]);
-                if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                geoJson = await resp.json();
-                console.log('[地图] GeoJSON 加载成功 (' + geoJson.features.length + '个区域)');
-                return true;
-            } catch(e) {
-                console.warn('[地图] 源 ' + (i+1) + ' 失败: ' + e.message);
-            }
-        }
-        console.error('[地图] 所有 GeoJSON 源均加载失败');
-        return false;
-    }
-
-    // ========== 加载演出数据 ==========
-    async function loadPerformances() {
-        try {
-            var resp = await fetch('data/performances.json');
-            if (!resp.ok) throw new Error('HTTP ' + resp.status);
-            allPerformances = await resp.json();
-            console.log('[数据] 加载 ' + allPerformances.length + ' 条演出');
-        } catch(e) {
-            console.warn('[数据] 演出数据加载失败，使用空列表:', e);
-            allPerformances = [];
-        }
-    }
-
-    // ========== 判断演出状态 ==========
-    function getStatus(perf) {
-        var now = new Date();
-        var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        var start = new Date(perf.startDate + 'T00:00:00');
-        var end = new Date(perf.endDate + 'T23:59:59');
-        var threeDaysLater = new Date(end.getTime() + 3 * 24 * 60 * 60 * 1000);
-
-        if (today >= start && today <= end) return 'live';
-        if (today < start) return 'upcoming';
-        if (today > end && today <= threeDaysLater) return 'ended';
-        return null;
-    }
-
-    // ========== 获取活跃演出 ==========
-    function getActivePerformances() {
-        return allPerformances
-            .filter(function(p) {
-                var s = getStatus(p);
-                if (!s) return false;
-                return filters[s] !== false;
-            })
-            .map(function(p) {
-                p._status = getStatus(p);
-                return p;
-            });
-    }
-
-    // ========== 初始化地图 ==========
-    function initChart() {
-        var dom = document.getElementById('mapChart');
-        chart = echarts.init(dom, null, { renderer: 'svg' });
-        echarts.registerMap('china', geoJson);
-
-        var option = {
-            backgroundColor: 'transparent',
-            geo: {
-                map: 'china',
-                roam: true,
-                zoom: 1.15,
-                center: [104.5, 35.5],
-                aspectScale: 0.85,
-                label: {
-                    show: true,
-                    color: 'rgba(201,169,110,0.5)',
-                    fontSize: 10,
-                    fontFamily: '"Noto Sans SC", "Microsoft YaHei", "PingFang SC", "SimHei", sans-serif',
-                    textBorderColor: 'rgba(10,14,23,0.8)',
-                    textBorderWidth: 2
-                },
-                itemStyle: {
-                    areaColor: '#16213e',
-                    borderColor: 'rgba(201,169,110,0.25)',
-                    borderWidth: 1,
-                    shadowColor: 'rgba(0,0,0,0.3)',
-                    shadowBlur: 8
-                },
-                emphasis: {
-                    label: { color: '#fff', fontSize: 12, fontFamily: '"Noto Sans SC", "Microsoft YaHei", "PingFang SC", "SimHei", sans-serif' },
-                    itemStyle: {
-                        areaColor: '#1a3a5c',
-                        borderColor: '#c9a96e',
-                        borderWidth: 2
-                    }
-                }
-            },
-            series: [
-                {
-                    name: '正在演出',
-                    type: 'effectScatter',
-                    coordinateSystem: 'geo',
-                    data: [],
-                    symbolSize: 14,
-                    showEffectOn: 'render',
-                    rippleEffect: { brushType: 'stroke', scale: 3, period: 4, color: '#ff4444' },
-                    itemStyle: { color: '#ff4444', shadowBlur: 15, shadowColor: 'rgba(255,68,68,0.6)' },
-                    zlevel: 1
-                },
-                {
-                    name: '即将演出',
-                    type: 'effectScatter',
-                    coordinateSystem: 'geo',
-                    data: [],
-                    symbolSize: 12,
-                    showEffectOn: 'render',
-                    rippleEffect: { brushType: 'stroke', scale: 2.5, period: 6, color: '#f5c518' },
-                    itemStyle: { color: '#f5c518', shadowBlur: 10, shadowColor: 'rgba(245,197,24,0.4)' },
-                    zlevel: 1
-                },
-                {
-                    name: '已结束',
-                    type: 'scatter',
-                    coordinateSystem: 'geo',
-                    data: [],
-                    symbolSize: 10,
-                    itemStyle: { color: '#666', shadowBlur: 5, shadowColor: 'rgba(102,102,102,0.3)', opacity: 0.7 },
-                    zlevel: 1
-                }
-            ]
-        };
-
-        chart.setOption(option);
-
-        // 事件绑定
-        chart.on('mouseover', 'series', function(params) {
-            if (params.data && params.data._perf) {
-                showTooltip(params.data._perf, params.event.event);
-            }
-        });
-        chart.on('mouseout', 'series', function() {
-            tooltip.classList.remove('visible');
-        });
-
-        window.addEventListener('resize', function() { chart.resize(); });
-
-        // 鼠标移动跟随
-        document.addEventListener('mousemove', function(e) {
-            if (tooltip.classList.contains('visible')) {
-                positionTooltip(e.clientX, e.clientY);
-            }
-        });
-
-        console.log('[地图] 初始化完成');
-    }
-
-    // ========== 更新地图数据 ==========
-    function updateMapData() {
-        if (!chart) return;
-        var active = getActivePerformances();
-        var liveData = [], upcomingData = [], endedData = [];
-
-        active.forEach(function(p) {
-            var pt = { name: p.name, value: [p.lng, p.lat], _perf: p };
-            if (p._status === 'live') liveData.push(pt);
-            else if (p._status === 'upcoming') upcomingData.push(pt);
-            else if (p._status === 'ended') endedData.push(pt);
-        });
-
-        chart.setOption({
-            series: [
-                { data: liveData },
-                { data: upcomingData },
-                { data: endedData }
-            ]
-        });
-
-        // 更新统计
-        document.getElementById('sLive').textContent = liveData.length;
-        document.getElementById('sUpcoming').textContent = upcomingData.length;
-        document.getElementById('sEnded').textContent = endedData.length;
-        document.getElementById('sTotal').textContent = active.length;
-
-        // 更新底部列表
-        updatePerfList(active);
-    }
-
-    // ========== 底部演出列表 ==========
-    function updatePerfList(active) {
-        var list = document.getElementById('perfList');
-        var sorted = active.sort(function(a, b) {
-            var order = { live: 0, upcoming: 1, ended: 2 };
-            return order[a._status] - order[b._status];
-        }).slice(0, 20);
-
-        list.innerHTML = sorted.map(function(p) {
-            var color = p._status === 'live' ? '#ff4444' : p._status === 'upcoming' ? '#f5c518' : '#666';
-            return '<div class="perf-card" onmouseover="window._flyTo(' + p.lng + ',' + p.lat + ')">' +
-                '<span style="color:' + color + ';margin-right:4px;">●</span>' +
-                '<span class="pc-name">' + p.name + '</span>' +
-                '<div class="pc-info">' + p.city + ' · ' + p.startDate + '</div>' +
-                '</div>';
-        }).join('');
-    }
-
-    // 飞到指定坐标
-    window._flyTo = function(lng, lat) {
-        if (chart) {
-            chart.setOption({ geo: { center: [lng, lat], zoom: 2.5 } });
-            setTimeout(function() { chart.setOption({ geo: { center: [104.5, 35.5], zoom: 1.15 } }); }, 2000);
-        }
-    };
-
-    // ========== 悬浮提示 ==========
-    function showTooltip(perf, event) {
-        var stMap = { live: ['正在演出','live','#ff4444'], upcoming: ['即将演出','upcoming','#f5c518'], ended: ['已结束','ended','#666'] };
-        var st = stMap[perf._status || 'upcoming'];
-        tooltip.innerHTML =
-            '<span class="tt-status ' + st[1] + '" style="background:' + st[2] + '"></span>' +
-            '<span style="color:' + st[2] + ';font-size:11px;">' + st[0] + '</span>' +
-            '<span class="tt-name">' + perf.name + '</span>' +
-            '<span class="tt-genre">' + (perf.genre || '戏曲') + '</span>' +
-            '<div class="tt-row">📍 ' + perf.province + ' ' + perf.city + ' · ' + perf.address + '</div>' +
-            '<div class="tt-row">📅 ' + perf.startDate + ' ~ ' + perf.endDate + '</div>' +
-            '<div class="tt-row">🎭 ' + (perf.troupe || '未知剧团') + '</div>' +
-            (perf.description ? '<div class="tt-desc">' + perf.description + '</div>' : '');
-        tooltip.classList.add('visible');
-        if (event) positionTooltip(event.clientX, event.clientY);
-    }
-
-    function positionTooltip(x, y) {
-        var w = tooltip.offsetWidth || 200;
-        var h = tooltip.offsetHeight || 100;
-        var left = Math.min(x + 20, window.innerWidth - w - 20);
-        var top = Math.max(60, Math.min(y - h / 2, window.innerHeight - h - 20));
-        tooltip.style.left = left + 'px';
-        tooltip.style.top = top + 'px';
-    }
-
-    // ========== 筛选器 ==========
-    document.querySelectorAll('.filter-tag input').forEach(function(cb) {
-        cb.addEventListener('change', function() {
-            cb.parentElement.classList.toggle('active', cb.checked);
-            var f = cb.dataset.filter;
-            if (f === 'all') {
-                filters = { live: cb.checked, upcoming: cb.checked, ended: cb.checked };
-                document.querySelectorAll('.filter-tag input').forEach(function(c) {
-                    c.checked = cb.checked;
-                    c.parentElement.classList.toggle('active', cb.checked);
-                });
-            } else {
-                filters[f] = cb.checked;
-            }
-            updateMapData();
-        });
-    });
-
-    // ========== 主初始化 ==========
-    async function main() {
-        var ok = await loadGeoJson();
-        if (!ok) {
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('error').style.display = 'flex';
-            document.getElementById('errorMsg').textContent = '无法加载中国地图数据，请检查网络连接后刷新页面。';
-            return;
-        }
-        await loadPerformances();
-        initChart();
-        updateMapData();
-        document.getElementById('loading').style.display = 'none';
-        console.log('[系统] 中国戏曲演出地图启动完成 ✅');
-    }
-
-    // 启动
-    main();
-
-})();
-</script>
+    <script src="js/main.js"></script>
 </body>
 </html>

@@ -22,7 +22,7 @@ const AdminManager = {
    */
   async loadData() {
     try {
-      const response = await fetch('../data/performances.json');
+      const response = await fetch('data/performances.json');
       if (!response.ok) throw new Error('加载失败');
       this.performances = await response.json();
     } catch (e) {
@@ -210,7 +210,7 @@ const AdminManager = {
           <div class="perf-item-left">
             <span class="perf-status-dot ${status}"></span>
             <div class="perf-info">
-              <h3>${perf.name} <span class="btn-source-tag ${perf.source === 'manual' ? '' : 'crawled'}">${perf.source === 'manual' ? '手动' : '爬取'}</span></h3>
+              <h3>${this.escapeHtml(perf.name)} <span class="btn-source-tag ${perf.source === 'manual' ? '' : 'crawled'}">${perf.source === 'manual' ? '手动' : '爬取'}</span></h3>
               <p>${perf.genre} · ${perf.province}${perf.city} · ${perf.startDate}~${perf.endDate}</p>
             </div>
           </div>
@@ -221,6 +221,16 @@ const AdminManager = {
         </div>
       `;
     }).join('');
+
+    // 更新计数
+    var countEl = document.getElementById('perfCount');
+    if (countEl) countEl.textContent = '共 ' + this.performances.length + ' 条';
+  },
+
+  escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
   },
 
   /**

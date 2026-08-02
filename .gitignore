@@ -20,3 +20,7 @@ Thumbs.db
 # 临时文件
 *.log
 *.tmp
+
+# Git attributes 确保 JSON 编码不被破坏
+# 注意：.gitattributes 不在 .gitignore 中，它需要被跟踪
+
