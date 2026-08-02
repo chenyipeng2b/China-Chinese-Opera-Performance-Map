@@ -253,18 +253,29 @@ body {
   background: rgba(10,14,23,0.95);
   border-top: 1px solid rgba(201,169,110,0.15);
   padding: 10px 16px;
-  max-height: 130px;
+  max-height: 300px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
-.perf-bar-title { color: var(--gold); font-size: 13px; margin-bottom: 6px; }
-.perf-list { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
+.perf-bar-title {
+  color: var(--gold); font-size: 13px; margin-bottom: 6px;
+  flex-shrink: 0;
+}
+.perf-list {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  overflow-y: auto; overflow-x: hidden;
+  padding-right: 6px; padding-bottom: 4px;
+  flex: 1;
+  align-content: flex-start;
+}
 .perf-card {
-  flex-shrink: 0; padding: 6px 12px;
+  padding: 6px 12px;
   background: rgba(22,33,62,0.5);
   border: 1px solid rgba(201,169,110,0.15);
   border-radius: 6px;
   font-size: 12px; cursor: pointer;
-  min-width: 160px;
+  min-width: 160px; max-width: 220px;
   transition: border-color 0.3s;
 }
 .perf-card:hover { border-color: var(--gold); }

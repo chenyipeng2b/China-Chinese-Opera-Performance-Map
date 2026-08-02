@@ -214,7 +214,7 @@
         var sorted = active.sort(function(a, b) {
             var order = { live: 0, upcoming: 1, ended: 2 };
             return order[a._status] - order[b._status];
-        }).slice(0, 20);
+        });
 
         list.innerHTML = sorted.map(function(p) {
             var color = p._status === 'live' ? '#ff4444' : p._status === 'upcoming' ? '#f5c518' : '#666';
