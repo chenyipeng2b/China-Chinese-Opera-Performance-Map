@@ -218,7 +218,7 @@
 
         list.innerHTML = sorted.map(function(p) {
             var color = p._status === 'live' ? '#ff4444' : p._status === 'upcoming' ? '#f5c518' : '#666';
-            return '<div class="perf-card" onmouseover="window._flyTo(' + p.lng + ',' + p.lat + ')">' +
+            return '<div class="perf-card" onclick="window._flyTo(' + p.lng + ',' + p.lat + ')" style="cursor:pointer">' +
                 '<span style="color:' + color + ';margin-right:4px;">●</span>' +
                 '<span class="pc-name">' + escapeHtml(p.name) + '</span>' +
                 '<div class="pc-info">' + escapeHtml(p.city) + ' · ' + p.startDate + '</div>' +
