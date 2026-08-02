@@ -20,33 +20,60 @@
             { url: 'https://geojson.cn/api/data/china-geojson/china.json', name: 'GeoJSON.cn' }
         ];
 
+        var failures = [];
+
         for (var i = 0; i < sources.length; i++) {
             var src = sources[i];
             try {
+                var startTime = performance.now();
                 var resp = await fetch(src.url);
                 if (!resp.ok) throw new Error('HTTP ' + resp.status + ' ' + resp.statusText);
                 var text = await resp.text();
                 geoJson = JSON.parse(text);
-                console.log('[地图] ' + src.name + ' 加载成功 (' + geoJson.features.length + '个区域)');
+                var elapsed = Math.round(performance.now() - startTime);
+                OperaLog.info('地图', 'GeoJSON 从 ' + src.name + ' 加载成功', {
+                    source: src.url,
+                    regions: geoJson.features.length,
+                    dataSize: text.length,
+                    loadTimeMs: elapsed
+                });
                 return true;
             } catch(e) {
-                console.warn('[地图] ' + src.name + ' 源失败 (' + src.url + '):', e.message);
+                failures.push({ name: src.name, url: src.url, error: e.message });
+                OperaLog.warn('地图', 'GeoJSON 源 ' + src.name + ' 加载失败', {
+                    url: src.url,
+                    errorMessage: e.message,
+                    attemptIndex: i + 1,
+                    totalAttempts: sources.length
+                });
             }
         }
 
-        console.error('[地图] 所有源均加载失败，地图不可用');
+        OperaLog.error('地图', '所有 GeoJSON 源均加载失败', {
+            totalSources: sources.length,
+            allFailures: failures
+        });
         return false;
     }
 
     // ========== 加载演出数据 ==========
     async function loadPerformances() {
         try {
+            var startTime = performance.now();
             var resp = await fetch('data/performances.json');
             if (!resp.ok) throw new Error('HTTP ' + resp.status);
             allPerformances = await resp.json();
-            console.log('[数据] 加载 ' + allPerformances.length + ' 条演出');
+            var elapsed = Math.round(performance.now() - startTime);
+            OperaLog.info('数据', '演出数据加载成功', {
+                count: allPerformances.length,
+                loadTimeMs: elapsed,
+                genres: allPerformances.map(function(p) { return p.genre; }).filter(function(v, i, a) { return a.indexOf(v) === i; })
+            });
         } catch(e) {
-            console.warn('[数据] 加载失败:', e);
+            OperaLog.error('数据', '演出数据加载失败', {
+                errorMessage: e.message,
+                url: 'data/performances.json'
+            });
             allPerformances = [];
         }
     }
@@ -179,7 +206,10 @@
             }
         });
 
-        console.log('[地图] 初始化完成');
+        OperaLog.info('地图', 'ECharts 初始化完成', {
+            renderer: 'svg',
+            regions: geoJson ? geoJson.features.length : 0
+        });
     }
 
     // ========== 按坐标合并同一剧院的多场演出 ==========
@@ -405,23 +435,52 @@
 
     // ========== 主初始化 ==========
     async function main() {
-        // 并行加载 GeoJSON 和演出数据，不相互阻塞
-        var geoOk = await loadGeoJson();
-        await loadPerformances();
+        OperaLog.info('系统', '开始初始化');
+        var initStartTime = performance.now();
 
-        if (geoOk) {
-            initChart();
-            updateMapData();
-        } else {
-            // 渐进式降级：地图不可用但演出数据正常展示
+        try {
+            var geoOk = await loadGeoJson();
+            await loadPerformances();
+
+            if (geoOk) {
+                try {
+                    initChart();
+                    updateMapData();
+                } catch(e) {
+                    OperaLog.error('地图', '地图初始化失败', {
+                        errorMessage: e.message,
+                        errorName: e.name,
+                        geoOk: geoOk
+                    });
+                    document.getElementById('error').style.display = 'flex';
+                    document.getElementById('errorMsg').textContent = '地图渲染失败: ' + e.message;
+                    updateStats();
+                    updatePerfList(getActivePerformances());
+                }
+            } else {
+                // 渐进式降级：地图不可用但演出数据正常展示
+                document.getElementById('error').style.display = 'flex';
+                document.getElementById('errorMsg').textContent = '地图数据加载失败，请刷新页面重试。演出数据已正常加载。';
+                updateStats();
+                updatePerfList(getActivePerformances());
+            }
+        } catch(e) {
+            OperaLog.error('系统', '启动过程致命错误', {
+                errorMessage: e.message,
+                errorName: e.name,
+                errorStack: e.stack
+            });
             document.getElementById('error').style.display = 'flex';
-            document.getElementById('errorMsg').textContent = '地图数据加载失败，请刷新页面重试。演出数据已正常加载。';
-            updateStats();
-            updatePerfList(getActivePerformances());
+            document.getElementById('errorMsg').textContent = '系统初始化失败: ' + e.message;
         }
 
         document.getElementById('loading').style.display = 'none';
-        console.log('[系统] 中国戏曲演出地图启动完成 (地图:' + (geoOk ? '可用' : '降级') + ', 演出:' + allPerformances.length + '条)');
+        var totalElapsed = Math.round(performance.now() - initStartTime);
+        OperaLog.info('系统', '启动完成', {
+            mapAvailable: geoOk,
+            performanceCount: allPerformances.length,
+            totalInitTimeMs: totalElapsed
+        });
     }
 
     main();
