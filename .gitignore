@@ -1,0 +1,22 @@
+# 依赖
+node_modules/
+package-lock.json
+
+# 系统文件
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# IDE
+.idea/
+.vscode/
+*.code-workspace
+
+# 环境变量
+.env
+.env.local
+
+# 临时文件
+*.log
+*.tmp
