@@ -4,11 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>中国戏曲演出地图</title>
+    <!-- 加载 Google Fonts 中文字体，确保所有浏览器都能正确渲染中文 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            font-family: 'Noto Sans SC', 'Microsoft YaHei', 'PingFang SC', 'SimHei', sans-serif;
             background: #0a0e17;
             color: #d4c5a0;
             min-height: 100vh;
@@ -283,7 +285,7 @@
     // ========== 初始化地图 ==========
     function initChart() {
         var dom = document.getElementById('mapChart');
-        chart = echarts.init(dom);
+        chart = echarts.init(dom, null, { renderer: 'svg' });
         echarts.registerMap('china', geoJson);
 
         var option = {
@@ -298,7 +300,9 @@
                     show: true,
                     color: 'rgba(201,169,110,0.5)',
                     fontSize: 10,
-                    fontFamily: 'Microsoft YaHei, PingFang SC, SimHei, sans-serif'
+                    fontFamily: '"Noto Sans SC", "Microsoft YaHei", "PingFang SC", "SimHei", sans-serif',
+                    textBorderColor: 'rgba(10,14,23,0.8)',
+                    textBorderWidth: 2
                 },
                 itemStyle: {
                     areaColor: '#16213e',
@@ -308,7 +312,7 @@
                     shadowBlur: 8
                 },
                 emphasis: {
-                    label: { color: '#fff', fontSize: 12, fontFamily: 'Microsoft YaHei, PingFang SC, SimHei, sans-serif' },
+                    label: { color: '#fff', fontSize: 12, fontFamily: '"Noto Sans SC", "Microsoft YaHei", "PingFang SC", "SimHei", sans-serif' },
                     itemStyle: {
                         areaColor: '#1a3a5c',
                         borderColor: '#c9a96e',
