@@ -589,6 +589,54 @@ body {
 .form-group.full-width { grid-column: 1 / -1; }
 .form-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.5px; }
 .form-label .required { color: var(--live-red); margin-left: 2px; }
+.form-label .label-hint { font-weight: 400; font-size: 11px; color: var(--text-muted); margin-left: 4px; }
+
+/* 输入框 + 按钮横向排列 */
+.form-input-row {
+  display: flex; gap: 10px;
+}
+.form-input-row .form-input {
+  flex: 1;
+}
+
+/* 自动定位按钮 */
+.btn-geocode {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 12px 18px;
+  background: linear-gradient(135deg, #4A90D9, #357ABD);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px; font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+.btn-geocode:hover {
+  background: linear-gradient(135deg, #5AA0E9, #4A8AD9);
+  box-shadow: 0 4px 16px rgba(74, 144, 217, 0.35);
+  transform: translateY(-1px);
+}
+.btn-geocode:active {
+  transform: translateY(0);
+}
+.btn-geocode:disabled {
+  opacity: 0.7; cursor: not-allowed; transform: none;
+}
+.geocode-icon { font-size: 15px; }
+
+/* 只读输入框（经纬度） */
+.form-input-readonly {
+  background: var(--bg-tertiary) !important;
+  cursor: not-allowed;
+  color: var(--gold-dark) !important;
+  font-weight: 500;
+}
+.form-input-readonly:focus {
+  border-color: rgba(201, 169, 110, 0.2) !important;
+  box-shadow: none !important;
+}
 
 .form-input, .form-select, .form-textarea {
   padding: 12px 16px;

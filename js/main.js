@@ -8,7 +8,6 @@
     var chart = null;
     var geoJson = null;
     var allPerformances = [];
-    var filters = { live: true, upcoming: true, ended: true };
     var tooltip = document.getElementById('tooltip');
     var mapSection = document.getElementById('mapSection');
     var zoomHint = document.getElementById('zoomHint');
@@ -101,7 +100,10 @@
             .filter(function(p) {
                 var s = getStatus(p);
                 if (!s) return false;
-                return filters[s] !== false;
+                if (filters[s] === false) return false;
+                // 数据来源筛选：勾选"个人添加"时只显示 manual 数据
+                if (filters.manual && p.source !== 'manual') return false;
+                return true;
             })
             .map(function(p) {
                 p._status = getStatus(p);
@@ -457,16 +459,24 @@
     }
 
     // ========== 筛选器 ==========
+    var filters = { live: true, upcoming: true, ended: true, manual: false };
+
     document.querySelectorAll('.filter-tag input').forEach(function(cb) {
         cb.addEventListener('change', function() {
             cb.parentElement.classList.toggle('active', cb.checked);
             var f = cb.dataset.filter;
             if (f === 'all') {
-                filters = { live: cb.checked, upcoming: cb.checked, ended: cb.checked };
-                document.querySelectorAll('.filter-tag input').forEach(function(c) {
+                // "全部" 开关：联动状态标签（不联动来源标签）
+                filters.live = cb.checked;
+                filters.upcoming = cb.checked;
+                filters.ended = cb.checked;
+                document.querySelectorAll('.panel-card .filter-tag:not(.source-tag) input').forEach(function(c) {
                     c.checked = cb.checked;
                     c.parentElement.classList.toggle('active', cb.checked);
                 });
+            } else if (f === 'manual') {
+                // "个人添加" 独立开关
+                filters.manual = cb.checked;
             } else {
                 filters[f] = cb.checked;
             }

@@ -6,12 +6,16 @@ const AdminManager = {
   performances: [],
   editingId: null,
 
+  // 高德地图 Web API Key（请在 https://lbs.amap.com/ 注册获取）
+  AMAP_KEY: '',
+
   /**
    * 初始化
    */
   async init() {
     await this.loadData();
     this.bindFormEvents();
+    this.bindGeocodeBtn();
     this.renderList();
     this.setupToggle();
     console.log('[管理] 初始化完成');
@@ -64,6 +68,81 @@ const AdminManager = {
   },
 
   /**
+   * 绑定地理编码定位按钮
+   */
+  bindGeocodeBtn() {
+    const btn = document.getElementById('geocodeBtn');
+    if (!btn) return;
+
+    btn.addEventListener('click', () => {
+      this.geocodeAddress();
+    });
+  },
+
+  /**
+   * 通过高德地图 API 将地址转为经纬度
+   */
+  async geocodeAddress() {
+    if (!this.AMAP_KEY) {
+      alert('请先在 admin.js 中配置高德地图 API Key（AMAP_KEY）！\n注册地址：https://lbs.amap.com/');
+      return;
+    }
+
+    const form = document.getElementById('perfForm');
+    const province = form.querySelector('[name="province"]').value.trim();
+    const city = form.querySelector('[name="city"]').value.trim();
+    const address = form.querySelector('[name="address"]').value.trim();
+
+    if (!province || !city || !address) {
+      alert('请先填写省份、城市和详细地址！');
+      return;
+    }
+
+    const fullAddress = province + city + address;
+    const btn = document.getElementById('geocodeBtn');
+    const origHtml = btn.innerHTML;
+
+    // 显示加载状态
+    btn.innerHTML = '<span class="geocode-icon">⏳</span> 定位中...';
+    btn.disabled = true;
+
+    try {
+      const url = 'https://restapi.amap.com/v3/geocode/geo'
+        + '?key=' + encodeURIComponent(this.AMAP_KEY)
+        + '&address=' + encodeURIComponent(fullAddress)
+        + '&output=JSON';
+
+      const resp = await fetch(url);
+      const data = await resp.json();
+
+      if (data.status === '1' && data.geocodes && data.geocodes.length > 0) {
+        const location = data.geocodes[0].location; // 格式 "116.3838,39.9131"
+        const parts = location.split(',');
+        const lng = parseFloat(parts[0]);
+        const lat = parseFloat(parts[1]);
+
+        if (!isNaN(lng) && !isNaN(lat)) {
+          form.querySelector('[name="lng"]').value = lng;
+          form.querySelector('[name="lat"]').value = lat;
+          this.showToast('定位成功！坐标：' + lng.toFixed(4) + ', ' + lat.toFixed(4));
+          console.log('[管理] 地理编码成功:', fullAddress, '→', lng, lat);
+        } else {
+          alert('解析坐标失败，请检查地址是否正确');
+        }
+      } else {
+        alert('定位失败：' + (data.info || '未找到该地址，请检查地址是否正确'));
+        console.error('[管理] 地理编码失败:', data);
+      }
+    } catch (e) {
+      console.error('[管理] 地理编码请求异常:', e);
+      alert('网络请求失败，请检查网络连接后重试');
+    } finally {
+      btn.innerHTML = origHtml;
+      btn.disabled = false;
+    }
+  },
+
+  /**
    * 保存演出信息
    */
   savePerformance() {
@@ -87,9 +166,9 @@ const AdminManager = {
     };
 
     // 验证必填字段
-    if (!perf.name || !perf.genre || !perf.province || !perf.city || 
+    if (!perf.name || !perf.genre || !perf.province || !perf.city || !perf.address ||
         !perf.startDate || !perf.endDate || isNaN(perf.lng) || isNaN(perf.lat)) {
-      alert('请填写所有必填字段，包括经纬度坐标！');
+      alert('请填写所有必填字段，并点击"自动定位"获取经纬度坐标！');
       return;
     }
 
@@ -128,8 +207,8 @@ const AdminManager = {
     form.querySelector('[name="endDate"]').value = perf.endDate;
     form.querySelector('[name="troupe"]').value = perf.troupe || '';
     form.querySelector('[name="description"]').value = perf.description || '';
-    form.querySelector('[name="lng"]').value = perf.lng;
-    form.querySelector('[name="lat"]').value = perf.lat;
+    form.querySelector('[name="lng"]').value = perf.lng || '';
+    form.querySelector('[name="lat"]').value = perf.lat || '';
 
     document.getElementById('submitBtn').textContent = '更新演出';
     document.getElementById('formTitle').textContent = '编辑演出信息';
@@ -177,7 +256,7 @@ const AdminManager = {
     const form = document.getElementById('perfForm');
     form.reset();
     this.editingId = null;
-    document.getElementById('submitBtn').textContent = '保存演出';
+    document.getElementById('submitBtn').textContent = '💾 保存演出';
     document.getElementById('formTitle').textContent = '添加演出信息';
   },
 
