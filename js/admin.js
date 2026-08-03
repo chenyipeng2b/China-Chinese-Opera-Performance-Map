@@ -6,9 +6,6 @@ const AdminManager = {
   performances: [],
   editingId: null,
 
-  // 高德地图 Web API Key（请在 https://lbs.amap.com/ 注册获取）
-  AMAP_KEY: '',
-
   /**
    * 初始化
    */
@@ -80,14 +77,10 @@ const AdminManager = {
   },
 
   /**
-   * 通过高德地图 API 将地址转为经纬度
+   * 通过 Nominatim（OpenStreetMap）将地址转为经纬度
+   * 完全免费，无需 API Key
    */
   async geocodeAddress() {
-    if (!this.AMAP_KEY) {
-      alert('请先在 admin.js 中配置高德地图 API Key（AMAP_KEY）！\n注册地址：https://lbs.amap.com/');
-      return;
-    }
-
     const form = document.getElementById('perfForm');
     const province = form.querySelector('[name="province"]').value.trim();
     const city = form.querySelector('[name="city"]').value.trim();
@@ -107,19 +100,21 @@ const AdminManager = {
     btn.disabled = true;
 
     try {
-      const url = 'https://restapi.amap.com/v3/geocode/geo'
-        + '?key=' + encodeURIComponent(this.AMAP_KEY)
-        + '&address=' + encodeURIComponent(fullAddress)
-        + '&output=JSON';
+      const url = 'https://nominatim.openstreetmap.org/search'
+        + '?q=' + encodeURIComponent(fullAddress)
+        + '&format=json&limit=1&addressdetails=1';
 
-      const resp = await fetch(url);
+      const resp = await fetch(url, {
+        headers: {
+          'User-Agent': 'ChineseOperaMap/1.0 (chenyipeng2b@github.com)',
+          'Accept-Language': 'zh-CN,zh;q=0.9'
+        }
+      });
       const data = await resp.json();
 
-      if (data.status === '1' && data.geocodes && data.geocodes.length > 0) {
-        const location = data.geocodes[0].location; // 格式 "116.3838,39.9131"
-        const parts = location.split(',');
-        const lng = parseFloat(parts[0]);
-        const lat = parseFloat(parts[1]);
+      if (Array.isArray(data) && data.length > 0) {
+        const lng = parseFloat(data[0].lon);
+        const lat = parseFloat(data[0].lat);
 
         if (!isNaN(lng) && !isNaN(lat)) {
           form.querySelector('[name="lng"]').value = lng;
@@ -130,8 +125,8 @@ const AdminManager = {
           alert('解析坐标失败，请检查地址是否正确');
         }
       } else {
-        alert('定位失败：' + (data.info || '未找到该地址，请检查地址是否正确'));
-        console.error('[管理] 地理编码失败:', data);
+        alert('未找到该地址，请尝试更详细的地址（如：北京市东城区国家大剧院）');
+        console.error('[管理] 地理编码无结果:', data);
       }
     } catch (e) {
       console.error('[管理] 地理编码请求异常:', e);
