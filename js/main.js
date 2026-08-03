@@ -10,6 +10,9 @@
     var allPerformances = [];
     var filters = { live: true, upcoming: true, ended: true };
     var tooltip = document.getElementById('tooltip');
+    var mapSection = document.getElementById('mapSection');
+    var zoomHint = document.getElementById('zoomHint');
+    var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
 
     // ========== 加载 GeoJSON ==========
     async function loadGeoJson() {
@@ -112,28 +115,32 @@
         chart = echarts.init(dom, null, { renderer: 'svg' });
         echarts.registerMap('china', geoJson);
 
+        // 地图区域色改为仿古宣纸暖色调
+        var paperAreaColor = '#1e1a14';
+
         var option = {
             backgroundColor: 'transparent',
             geo: {
                 map: 'china',
-                roam: true,
+                roam: !isMobile,  // 桌面端默认开启 roam，移动端默认关闭（使用手势）
                 zoom: 1.15,
                 center: [104.5, 35.5],
                 aspectScale: 0.85,
+                scaleLimit: { min: 0.8, max: 8 },
                 label: {
                     show: true,
-                    color: 'rgba(201,169,110,0.5)',
+                    color: 'rgba(201,169,110,0.45)',
                     fontSize: 10,
                     fontFamily: '"Noto Sans SC", "Microsoft YaHei", "PingFang SC", "SimHei", sans-serif',
                     textBorderColor: 'rgba(10,14,23,0.8)',
                     textBorderWidth: 2
                 },
                 itemStyle: {
-                    areaColor: '#16213e',
-                    borderColor: 'rgba(201,169,110,0.25)',
+                    areaColor: paperAreaColor,
+                    borderColor: 'rgba(201,169,110,0.3)',
                     borderWidth: 1,
-                    shadowColor: 'rgba(0,0,0,0.3)',
-                    shadowBlur: 8
+                    shadowColor: 'rgba(0,0,0,0.4)',
+                    shadowBlur: 10
                 },
                 emphasis: {
                     label: {
@@ -142,7 +149,7 @@
                         fontFamily: '"Noto Sans SC", "Microsoft YaHei", "PingFang SC", "SimHei", sans-serif'
                     },
                     itemStyle: {
-                        areaColor: '#1a3a5c',
+                        areaColor: '#2a2218',
                         borderColor: '#c9a96e',
                         borderWidth: 2
                     }
@@ -185,6 +192,44 @@
 
         chart.setOption(option);
 
+        // ========== 地图 hover 滚轮缩放控制 ==========
+        var mapDom = document.getElementById('mapChart');
+
+        function enableRoam() {
+            if (chart) {
+                chart.setOption({ geo: { roam: true } });
+                mapDom.classList.add('zoom-active');
+                if (zoomHint) zoomHint.classList.add('visible');
+            }
+        }
+
+        function disableRoam() {
+            if (chart) {
+                chart.setOption({ geo: { roam: false } });
+                mapDom.classList.remove('zoom-active');
+                if (zoomHint) zoomHint.classList.remove('visible');
+            }
+        }
+
+        if (!isMobile) {
+            // 桌面端：hover 地图区域时才启用滚轮缩放
+            mapSection.addEventListener('mouseenter', function() {
+                enableRoam();
+            });
+            mapSection.addEventListener('mouseleave', function() {
+                disableRoam();
+            });
+            // 初始状态禁用
+            disableRoam();
+        } else {
+            // 移动端：始终开启 roam 支持触摸手势
+            enableRoam();
+            if (zoomHint) {
+                zoomHint.textContent = '👆 双指缩放 · 单指拖拽';
+                zoomHint.classList.add('visible');
+            }
+        }
+
         // 事件
         chart.on('mouseover', 'series', function(params) {
             if (params.data && params.data._perfs) {
@@ -195,13 +240,18 @@
             }
         });
         chart.on('mouseout', 'series', function() {
-            tooltip.classList.remove('visible');
+            if (!isMobile) {
+                tooltip.classList.remove('visible');
+            }
         });
 
-        window.addEventListener('resize', function() { chart.resize(); });
+        window.addEventListener('resize', function() {
+            chart.resize();
+            isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+        });
 
         document.addEventListener('mousemove', function(e) {
-            if (tooltip.classList.contains('visible')) {
+            if (tooltip.classList.contains('visible') && !isMobile) {
                 positionTooltip(e.clientX, e.clientY);
             }
         });
@@ -362,7 +412,12 @@
         var countBadge = sorted.length > 1 ? '<span class="tt-count-badge">共 ' + sorted.length + ' 场演出</span>' : '';
 
         // 构建 HTML
-        var html = '<span class="tt-status ' + st[1] + '" style="background:' + st[2] + '"></span>' +
+        var html = '';
+        // 移动端添加关闭按钮
+        if (isMobile) {
+            html += '<button class="tt-close-btn" onclick="document.getElementById(\'tooltip\').classList.remove(\'visible\')">✕</button>';
+        }
+        html += '<span class="tt-status ' + st[1] + '" style="background:' + st[2] + '"></span>' +
             '<span style="color:' + st[2] + ';font-size:11px;">' + st[0] + '</span>' + countBadge +
             '<div class="tt-venue">📍 ' + escapeHtml(venueName || sorted[0].address) + '</div>';
 
@@ -431,6 +486,38 @@
         document.getElementById('sUpcoming').textContent = upcomingCount;
         document.getElementById('sEnded').textContent = endedCount;
         document.getElementById('sTotal').textContent = active.length;
+    }
+
+    // ========== 移动端面板切换 ==========
+    var mobilePanelBtn = document.getElementById('mobilePanelBtn');
+    var sidePanel = document.getElementById('sidePanel');
+    var panelOverlay = document.getElementById('panelOverlay');
+
+    function togglePanel() {
+        var isOpen = sidePanel.classList.contains('open');
+        if (isOpen) {
+            sidePanel.classList.remove('open');
+            if (panelOverlay) panelOverlay.classList.remove('show');
+        } else {
+            sidePanel.classList.add('open');
+            if (panelOverlay) panelOverlay.classList.add('show');
+        }
+    }
+
+    function closePanel() {
+        sidePanel.classList.remove('open');
+        if (panelOverlay) panelOverlay.classList.remove('show');
+    }
+
+    if (mobilePanelBtn) {
+        mobilePanelBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            togglePanel();
+        });
+    }
+
+    if (panelOverlay) {
+        panelOverlay.addEventListener('click', closePanel);
     }
 
     // ========== 主初始化 ==========

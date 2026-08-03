@@ -17,6 +17,78 @@
   --glass-bg: rgba(22, 33, 62, 0.85);
   --glass-border: rgba(201, 169, 110, 0.2);
   --shadow-glow: 0 0 20px rgba(196, 30, 58, 0.3);
+  /* 戏曲新增色 */
+  --china-red: #C41E3A;
+  --jade-green: #7BA898;
+  --ink-black: #1a120b;
+  --paper-warm: #f5ecd7;
+  --opera-font: 'Ma Shan Zheng', 'ZCOOL KuaiLe', 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+}
+
+/* ========== 水墨背景纹理 ========== */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: -2;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(201,169,110,0.04) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(196,30,58,0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 80%, rgba(123,168,152,0.03) 0%, transparent 55%),
+    var(--bg-primary);
+}
+
+/* 祥云纹装饰 - 导航栏底部 */
+.navbar::after {
+  content: '';
+  position: absolute;
+  bottom: -2px; left: 0; right: 0;
+  height: 3px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--gold) 0px,
+    var(--gold) 12px,
+    transparent 12px,
+    transparent 24px,
+    var(--gold-dark) 24px,
+    var(--gold-dark) 36px,
+    transparent 36px,
+    transparent 48px
+  );
+  opacity: 0.5;
+}
+
+/* 回纹装饰 - 面板分隔 */
+.panel-card::before {
+  content: '';
+  display: block;
+  height: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--gold-dark) 0px,
+    var(--gold-dark) 4px,
+    transparent 4px,
+    transparent 6px,
+    var(--gold-dark) 6px,
+    var(--gold-dark) 10px,
+    transparent 10px,
+    transparent 16px
+  );
+  margin-bottom: 10px;
+  opacity: 0.4;
+}
+
+/* 页脚祥云分隔 */
+.footer {
+  position: relative;
+}
+.footer::before {
+  content: '';
+  position: absolute;
+  top: -2px; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold-dark), transparent);
+  opacity: 0.4;
 }
 
 /* ========== 基础重置 ========== */
@@ -32,6 +104,8 @@ body {
   color: var(--text-primary);
   min-height: 100vh;
   overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 /* ========== 导航栏 ========== */
@@ -39,10 +113,10 @@ body {
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: 1000;
-  background: linear-gradient(180deg, rgba(20,15,10,0.98) 0%, rgba(10,14,23,0.9) 100%);
+  background: linear-gradient(180deg, rgba(20,15,10,0.98) 0%, rgba(10,14,23,0.92) 100%);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--glass-border);
-  padding: 12px 24px;
+  padding: 10px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -51,11 +125,11 @@ body {
 .navbar-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .navbar-logo {
-  width: 44px; height: 44px;
+  width: 40px; height: 40px;
   border-radius: 50%;
   object-fit: cover;
   background: #E8E4D0;
@@ -70,16 +144,47 @@ body {
 }
 
 .navbar-title {
+  font-family: var(--opera-font);
   font-size: 22px;
   font-weight: 700;
   background: linear-gradient(135deg, #FFFFFF, var(--gold));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
+}
+
+/* 脸谱装饰点 */
+.navbar-brand::after {
+  content: '🎭';
+  font-size: 18px;
+  animation: operaFloat 3s ease-in-out infinite;
+  opacity: 0.7;
+}
+@keyframes operaFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
 }
 
 .navbar-actions { display: flex; gap: 12px; }
+
+/* 移动端面板切换按钮 */
+.mobile-panel-btn {
+  display: none;
+  width: 36px; height: 36px;
+  background: rgba(201,169,110,0.12);
+  border: 1px solid rgba(201,169,110,0.3);
+  border-radius: 8px;
+  color: var(--gold);
+  font-size: 18px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+.mobile-panel-btn:hover {
+  background: rgba(201,169,110,0.25);
+}
 
 /* ========== 按钮 ========== */
 .btn {
@@ -192,25 +297,65 @@ body {
 
 /* 地图区域 */
 .map-section { flex: 1; position: relative; }
-#mapChart { width: 100%; height: 100%; }
+#mapChart { width: 100%; height: 100%; cursor: grab; }
+#mapChart.zoom-active { cursor: grab; }
+#mapChart:active { cursor: grabbing; }
 
-/* 加载遮罩 */
+/* 地图 hover 提示条 */
+.map-zoom-hint {
+  position: absolute;
+  bottom: 16px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(22,33,62,0.9);
+  border: 1px solid rgba(201,169,110,0.3);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 11px;
+  color: var(--gold);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 5;
+  letter-spacing: 1px;
+}
+.map-zoom-hint.visible { opacity: 1; }
+
+/* 加载遮罩 - 脸谱动画 */
 .loading-overlay {
   position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(10,14,23,0.9);
+  background: rgba(10,14,23,0.92);
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   z-index: 10;
 }
 .loading-spinner {
-  width: 40px; height: 40px;
-  border: 3px solid #333;
+  width: 56px; height: 56px;
+  position: relative;
+}
+.loading-spinner::before {
+  content: '🎭';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 36px;
+  animation: operaSpin 2s ease-in-out infinite;
+}
+@keyframes operaSpin {
+  0% { transform: translate(-50%, -50%) rotateY(0deg); }
+  50% { transform: translate(-50%, -50%) rotateY(180deg); }
+  100% { transform: translate(-50%, -50%) rotateY(360deg); }
+}
+.loading-spinner::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border: 2px solid rgba(201,169,110,0.15);
   border-top-color: var(--gold);
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin 1.2s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-.loading-overlay p { margin-top: 12px; color: var(--text-muted); font-size: 13px; }
+.loading-overlay p { margin-top: 16px; color: var(--text-muted); font-size: 13px; }
 
 /* 错误遮罩 */
 .error-overlay {
@@ -586,13 +731,198 @@ body {
 ::-webkit-scrollbar-thumb:hover { background: var(--gold); }
 
 /* ========== 响应式 ========== */
+
+/* 平板竖屏 */
+@media (max-width: 1024px) {
+  .side-panel { width: 220px; padding: 12px; }
+  .navbar-title { font-size: 18px; letter-spacing: 2px; }
+  .perf-card { min-width: 140px; }
+}
+
+/* 手机端 */
 @media (max-width: 768px) {
-  .navbar { padding: 12px 16px; }
-  .navbar-title { font-size: 16px; }
-  .side-panel { width: 100%; max-height: 200px; border-right: none; border-bottom: 1px solid rgba(201,169,110,0.1); }
-  .main-container { flex-direction: column; }
+  /* 导航栏缩小 */
+  .navbar {
+    padding: 8px 14px;
+    min-height: 48px;
+  }
+  .navbar-title {
+    font-size: 15px;
+    letter-spacing: 1px;
+  }
+  .navbar-logo {
+    width: 32px; height: 32px;
+  }
+  .navbar-brand::after {
+    font-size: 14px;
+  }
+  .navbar-actions {
+    gap: 6px;
+  }
+  .btn {
+    padding: 6px 14px;
+    font-size: 12px;
+    border-radius: 6px;
+  }
+
+  /* 显示移动端面板切换按钮 */
+  .mobile-panel-btn {
+    display: flex;
+  }
+
+  /* 主布局：移动端改为纵向堆叠 */
+  .main-container {
+    flex-direction: column;
+    height: auto;
+    min-height: calc(100vh - 48px);
+  }
+
+  /* 地图区域占据大部分空间 */
+  .map-section {
+    height: 55vh;
+    min-height: 320px;
+    flex: none;
+  }
+  #mapChart { cursor: default; }
+
+  /* 侧边面板 - 改为可折叠弹出式 */
+  .side-panel {
+    position: fixed;
+    top: 56px;
+    left: 0;
+    width: 100%;
+    max-height: 50vh;
+    border-right: none;
+    border-bottom: 2px solid rgba(201,169,110,0.2);
+    z-index: 100;
+    transform: translateY(-120%);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    padding: 12px;
+  }
+  .side-panel.open {
+    transform: translateY(0);
+  }
+
+  /* 面板遮罩 */
+  .panel-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 99;
+  }
+  .panel-overlay.show {
+    display: block;
+  }
+
+  /* 底部演出条 */
+  .perf-bar {
+    max-height: 40vh;
+    padding: 8px 10px;
+    flex-shrink: 0;
+  }
+  .perf-bar-title {
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+  .perf-list {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    gap: 6px;
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  .perf-card {
+    min-width: 180px;
+    max-width: 220px;
+    flex-shrink: 0;
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+  .perf-group {
+    min-width: 200px;
+    max-width: 240px;
+    flex-shrink: 0;
+  }
+  .pc-name { font-size: 12px; }
+  .pc-info { font-size: 10px; }
+  .pc-sub-item { font-size: 10px; }
+  .pc-sub-date { font-size: 9px; }
+
+  /* 悬浮提示 - 移动端改为底部固定弹窗 */
+  .info-tooltip {
+    position: fixed;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: auto !important;
+    max-width: 100% !important;
+    min-width: auto !important;
+    border-radius: 16px 16px 0 0;
+    padding: 20px 16px;
+    max-height: 55vh;
+    overflow-y: auto;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    z-index: 300;
+  }
+  .info-tooltip.visible {
+    display: block;
+    transform: translateY(0);
+  }
+
+  /* 移动端 tooltip 关闭按钮 */
+  .tt-close-btn {
+    position: absolute;
+    top: 8px; right: 12px;
+    width: 28px; height: 28px;
+    background: rgba(255,255,255,0.1);
+    border: none;
+    border-radius: 50%;
+    color: var(--gold);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .tt-venue { font-size: 15px; }
+  .tt-perf-name { font-size: 14px; }
+  .tt-perf-meta, .tt-perf-date { font-size: 12px; }
+
+  /* 地图 zoom hint 缩小 */
+  .map-zoom-hint {
+    font-size: 10px;
+    padding: 4px 12px;
+    bottom: 10px;
+  }
+
+  /* 管理页适配 */
   .form-grid { grid-template-columns: 1fr; }
-  .card { padding: 20px; }
-  .perf-item { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .card { padding: 16px; border-radius: 14px; }
+  .card-title { font-size: 16px; }
+  .admin-header h1 { font-size: 24px; }
+  .perf-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+  }
   .perf-item-right { width: 100%; justify-content: flex-end; }
+  .btn-small { padding: 5px 10px; font-size: 11px; }
+
+  /* 页脚缩小 */
+  .footer { font-size: 10px; padding: 4px; }
+}
+
+/* 小屏手机 (iPhone SE 等) */
+@media (max-width: 380px) {
+  .navbar-title { font-size: 13px; letter-spacing: 0.5px; }
+  .navbar-logo { width: 28px; height: 28px; }
+  .map-section { height: 45vh; min-height: 260px; }
+  .perf-card { min-width: 150px; max-width: 180px; }
+  .perf-bar { max-height: 35vh; }
 }
