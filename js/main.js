@@ -115,8 +115,9 @@
         chart = echarts.init(dom, null, { renderer: 'svg' });
         echarts.registerMap('china', geoJson);
 
-        // 地图区域色改为仿古宣纸暖色调
-        var paperAreaColor = '#1e1a14';
+        // 地图区域色改为宣纸暖色调
+        var paperAreaColor = '#F5EDE0';
+        var paperHoverColor = '#EBE0CC';
 
         var option = {
             backgroundColor: 'transparent',
@@ -129,28 +130,28 @@
                 scaleLimit: { min: 0.8, max: 8 },
                 label: {
                     show: true,
-                    color: 'rgba(201,169,110,0.45)',
+                    color: 'rgba(80,60,40,0.55)',
                     fontSize: 10,
                     fontFamily: '"Noto Sans SC", "Microsoft YaHei", "PingFang SC", "SimHei", sans-serif',
-                    textBorderColor: 'rgba(10,14,23,0.8)',
+                    textBorderColor: 'rgba(254,249,242,0.85)',
                     textBorderWidth: 2
                 },
                 itemStyle: {
                     areaColor: paperAreaColor,
-                    borderColor: 'rgba(201,169,110,0.3)',
+                    borderColor: 'rgba(184,148,62,0.35)',
                     borderWidth: 1,
-                    shadowColor: 'rgba(0,0,0,0.4)',
-                    shadowBlur: 10
+                    shadowColor: 'rgba(139,115,85,0.1)',
+                    shadowBlur: 8
                 },
                 emphasis: {
                     label: {
-                        color: '#fff',
+                        color: '#2C2416',
                         fontSize: 12,
                         fontFamily: '"Noto Sans SC", "Microsoft YaHei", "PingFang SC", "SimHei", sans-serif'
                     },
                     itemStyle: {
-                        areaColor: '#2a2218',
-                        borderColor: '#c9a96e',
+                        areaColor: paperHoverColor,
+                        borderColor: '#B8943E',
                         borderWidth: 2
                     }
                 }
