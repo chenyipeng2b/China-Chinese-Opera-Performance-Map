@@ -527,8 +527,7 @@
         var initStartTime = performance.now();
 
         try {
-            var geoOk = await loadGeoJson();
-            await loadPerformances();
+            var [geoOk] = await Promise.all([loadGeoJson(), loadPerformances()]);
 
             if (geoOk) {
                 try {
