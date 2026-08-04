@@ -1783,7 +1783,7 @@ body {
   margin-bottom: 10px;
 }
 
-/* 投票按钮 - 水墨印章风格 */
+/* 投票按钮 - 与网页演出状态颜色体系一致 */
 .discuss-item-actions {
   display: flex;
   gap: 8px;
@@ -1796,7 +1796,7 @@ body {
   padding: 5px 12px;
   border: 1px solid var(--glass-border);
   border-radius: 16px;
-  background: transparent;
+  background: var(--bg-secondary);
   cursor: pointer;
   font-size: 12px;
   color: var(--text-secondary);
@@ -1809,7 +1809,10 @@ body {
 .discuss-vote-btn:hover {
   border-color: var(--gold);
   color: var(--gold-dark);
-  background: rgba(184,148,62,0.06);
+  background: rgba(184,148,62,0.08);
+}
+.discuss-vote-btn:active {
+  transform: scale(0.96);
 }
 .discuss-vote-btn svg {
   width: 15px; height: 15px;
@@ -1827,17 +1830,19 @@ body {
   line-height: 1;
 }
 
-/* 点赞已投票 - 朱砂红印章 */
+/* 点赞已投票 - 与"演出中"红色一致 */
 .discuss-like-btn.voted {
-  color: #B81A2D;
-  border-color: rgba(184,26,45,0.45);
-  background: rgba(196,30,58,0.08);
+  color: var(--live-red);
+  border-color: var(--live-red);
+  background: rgba(229,57,53,0.08);
+  box-shadow: 0 0 0 1px rgba(229,57,53,0.15);
 }
-/* 点踩已投票 - 墨褐 */
+/* 点踩已投票 - 与"已结束"棕色一致 */
 .discuss-dislike-btn.voted {
-  color: #7B5E3B;
-  border-color: rgba(123,94,59,0.4);
-  background: rgba(123,94,59,0.06);
+  color: var(--ended-brown);
+  border-color: var(--ended-brown);
+  background: rgba(141,110,99,0.06);
+  box-shadow: 0 0 0 1px rgba(141,110,99,0.1);
 }
 
 /* 管理员删除按钮 */
@@ -1941,14 +1946,11 @@ body {
   color: #D4B86A;
   background: rgba(201,169,110,0.08);
 }
+/* 暗色下已投票复用 CSS 变量，自动适配 */
 [data-theme="dark"] .discuss-like-btn.voted {
-  color: #F48B94;
-  border-color: rgba(244,139,148,0.5);
   background: rgba(239,83,80,0.12);
 }
 [data-theme="dark"] .discuss-dislike-btn.voted {
-  color: #C9A87C;
-  border-color: rgba(201,168,124,0.4);
   background: rgba(161,136,127,0.1);
 }
 [data-theme="dark"] .discuss-delete-btn:hover {
