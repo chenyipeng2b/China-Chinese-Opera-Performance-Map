@@ -15,6 +15,10 @@ const AdminManager = {
     this.bindGeocodeBtn();
     this.renderList();
     this.setupToggle();
+    // 初始化省份/城市/地址 autocomplete
+    if (typeof initAutocomplete === 'function') {
+      initAutocomplete();
+    }
     console.log('[管理] 初始化完成');
   },
 

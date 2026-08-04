@@ -2,10 +2,16 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="format-detection" content="telephone=no">
     <title>中国戏曲演出地图</title>
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <!-- 跨浏览器 Polyfill（必须在所有 JS 之前加载） -->
+    <script src="js/polyfill.js"></script>
 </head>
 <body>
     <!-- 导航栏 -->
@@ -15,6 +21,8 @@
             <span class="navbar-title">中国戏曲演出地图</span>
         </div>
         <div class="navbar-actions">
+            <button class="theme-btn" id="themeBtn" title="切换主题">🌓</button>
+            <button class="log-btn" id="logBtn" title="查看日志">📋</button>
             <button class="mobile-panel-btn" id="mobilePanelBtn" title="面板">☰</button>
             <a href="admin.html" class="btn btn-outline">📝 管理演出</a>
         </div>
@@ -26,14 +34,25 @@
     <div class="main-container">
         <!-- 左侧面板 -->
         <aside class="side-panel" id="sidePanel">
+            <div class="panel-close-btn" id="panelCloseBtn" title="关闭面板">✕</div>
             <div class="panel-card">
-                <h3>🎨 图例说明</h3>
+                <div class="search-box">
+                    <input type="text" id="searchInput" class="search-input" placeholder="🔍 搜索演出名称...">
+                    <button class="search-clear" id="searchClear" style="display:none" title="清除">✕</button>
+                </div>
+            </div>
+            <div class="panel-card">
+                <h3><span class="panel-icon">◆</span> 剧种筛选 <span class="panel-badge" id="genreCount"></span></h3>
+                <div class="genre-tags" id="genreTags"></div>
+            </div>
+            <div class="panel-card">
+                <h3><span class="panel-icon">◇</span> 图例说明</h3>
                 <div class="legend-item"><span class="legend-dot red"></span><div><strong>正在演出</strong><small>进行中</small></div></div>
                 <div class="legend-item"><span class="legend-dot yellow"></span><div><strong>即将演出</strong><small>已排期</small></div></div>
                 <div class="legend-item"><span class="legend-dot black"></span><div><strong>已结束</strong><small>3天后消失</small></div></div>
             </div>
             <div class="panel-card">
-                <h3>📊 演出统计</h3>
+                <h3><span class="panel-icon">▤</span> 演出统计</h3>
                 <div class="stat-grid">
                     <div class="stat-item"><span class="stat-num red" id="sLive">0</span><span class="stat-label">演出中</span></div>
                     <div class="stat-item"><span class="stat-num yellow" id="sUpcoming">0</span><span class="stat-label">即将开始</span></div>
@@ -42,14 +61,14 @@
                 </div>
             </div>
             <div class="panel-card">
-                <h3>🔍 演出状态</h3>
+                <h3><span class="panel-icon">◎</span> 演出状态</h3>
                 <label class="filter-tag active"><input type="checkbox" checked data-filter="all"> 全部</label>
                 <label class="filter-tag active"><input type="checkbox" checked data-filter="live"> 演出中</label>
                 <label class="filter-tag active"><input type="checkbox" checked data-filter="upcoming"> 即将演出</label>
                 <label class="filter-tag active"><input type="checkbox" checked data-filter="ended"> 已结束</label>
             </div>
             <div class="panel-card">
-                <h3>📌 数据来源</h3>
+                <h3><span class="panel-icon">▪</span> 数据来源</h3>
                 <label class="filter-tag source-tag"><input type="checkbox" data-filter="manual"> 👤 个人添加</label>
             </div>
         </aside>
@@ -75,6 +94,45 @@
         <div class="perf-list" id="perfList"></div>
     </div>
 
+    <!-- 讨论区面板 -->
+    <div class="discuss-panel" id="discussionPanel">
+        <div class="discuss-header" id="discussionHeader">
+            <div class="discuss-header-left">
+                <svg class="discuss-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                <span class="discuss-header-title">戏迷讨论区</span>
+                <span class="discuss-header-count" id="discussPostCount">0</span>
+            </div>
+            <svg class="discuss-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
+            </svg>
+        </div>
+        <div class="discuss-body">
+            <!-- 发帖区 -->
+            <div class="discuss-post-box">
+                <div class="discuss-input-row">
+                    <input type="text" id="discNickname" class="discuss-nickname-input" placeholder="你的昵称（必填）" maxlength="20" autocomplete="off">
+                    <span class="discuss-count" id="discNicknameCount">0/20</span>
+                </div>
+                <textarea id="discContent" class="discuss-content-input" placeholder="说点什么吧..." maxlength="500" rows="3" autocomplete="off"></textarea>
+                <div class="discuss-post-footer">
+                    <span class="discuss-count" id="discContentCount">0/500</span>
+                    <div class="discuss-post-actions">
+                        <span id="discFilterHint" class="discuss-filter-hint hidden"></span>
+                        <button id="discPostBtn" class="discuss-post-btn" disabled>发布</button>
+                    </div>
+                </div>
+            </div>
+            <!-- 评论列表 -->
+            <div id="discList" class="discuss-list">
+                <div class="discuss-empty">暂无评论，快来抢沙发吧~</div>
+            </div>
+            <!-- 分页器 -->
+            <div id="discPager" class="discuss-pager"></div>
+        </div>
+    </div>
+
     <footer class="footer">
         数据来源：网络爬取 + 用户贡献 | Powered by GitHub Pages
     </footer>
@@ -82,7 +140,28 @@
     <!-- 悬浮提示 -->
     <div class="info-tooltip" id="tooltip"></div>
 
+    <!-- 日志面板 -->
+    <div class="log-panel-overlay" id="logOverlay"></div>
+    <div class="log-panel" id="logPanel">
+        <div class="log-panel-header">
+            <h3>📋 运行日志</h3>
+            <div class="log-panel-actions">
+                <button class="log-action-btn" id="logExport" title="导出日志">📥</button>
+                <button class="log-action-btn" id="logClear" title="清空日志">🗑️</button>
+                <button class="log-action-btn" id="logClose" title="关闭">✕</button>
+            </div>
+        </div>
+        <div class="log-panel-stats" id="logStats"></div>
+        <div class="log-panel-list" id="logList"></div>
+    </div>
+
     <script src="js/log.js"></script>
+    <script src="js/theme.js"></script>
+    <script>
+        // 初始化主题管理器
+        ThemeManager.init();
+    </script>
+    <script src="js/discuss.js"></script>
     <script src="js/main.js"></script>
 </body>
 </html>

@@ -123,18 +123,18 @@ const MapRenderer = {
           type: 'effectScatter',
           coordinateSystem: 'geo',
           data: [],
-          symbolSize: 14,
+          symbolSize: 8,
           showEffectOn: 'render',
           rippleEffect: {
             brushType: 'stroke',
-            scale: 3,
-            period: 4,
-            color: '#FF4444'
+            scale: 2.2,
+            period: 5,
+            color: '#E53935'
           },
           itemStyle: {
-            color: '#FF4444',
-            shadowBlur: 15,
-            shadowColor: 'rgba(255, 68, 68, 0.6)'
+            color: '#E53935',
+            shadowBlur: 8,
+            shadowColor: 'rgba(229, 57, 53, 0.5)'
           },
           label: {
             show: false
@@ -146,18 +146,18 @@ const MapRenderer = {
           type: 'effectScatter',
           coordinateSystem: 'geo',
           data: [],
-          symbolSize: 12,
+          symbolSize: 7,
           showEffectOn: 'render',
           rippleEffect: {
             brushType: 'stroke',
-            scale: 2.5,
-            period: 6,
-            color: '#F5C518'
+            scale: 2,
+            period: 5,
+            color: '#00ACC1'
           },
           itemStyle: {
-            color: '#F5C518',
-            shadowBlur: 10,
-            shadowColor: 'rgba(245, 197, 24, 0.4)'
+            color: '#00ACC1',
+            shadowBlur: 6,
+            shadowColor: 'rgba(0, 172, 193, 0.4)'
           },
           label: {
             show: false
@@ -169,12 +169,12 @@ const MapRenderer = {
           type: 'scatter',
           coordinateSystem: 'geo',
           data: [],
-          symbolSize: 10,
+          symbolSize: 6,
           itemStyle: {
-            color: '#666666',
-            shadowBlur: 5,
-            shadowColor: 'rgba(102, 102, 102, 0.3)',
-            opacity: 0.7
+            color: '#8D6E63',
+            shadowBlur: 3,
+            shadowColor: 'rgba(141, 110, 99, 0.25)',
+            opacity: 0.75
           },
           label: {
             show: false
