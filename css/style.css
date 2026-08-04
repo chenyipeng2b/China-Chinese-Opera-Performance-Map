@@ -1783,63 +1783,61 @@ body {
   margin-bottom: 10px;
 }
 
-/* 投票按钮 */
+/* 投票按钮 - 水墨印章风格 */
 .discuss-item-actions {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
 }
 .discuss-vote-btn {
   display: inline-flex;
-  flex-direction: column;
   align-items: center;
-  gap: 1px;
-  padding: 5px 8px;
-  min-width: 42px;
-  border: 1px solid rgba(184,148,62,0.2);
-  border-radius: 6px;
-  background: rgba(184,148,62,0.04);
+  gap: 5px;
+  padding: 5px 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  background: transparent;
   cursor: pointer;
-  font-size: 11px;
-  color: var(--text-muted);
+  font-size: 12px;
+  color: var(--text-secondary);
   font-family: inherit;
-  transition: all 0.25s;
+  font-weight: 500;
+  transition: all 0.22s ease;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
 .discuss-vote-btn:hover {
-  border-color: rgba(184,148,62,0.5);
-  color: var(--gold);
-  background: rgba(184,148,62,0.08);
-}
-.discuss-vote-btn.voted {
   border-color: var(--gold);
-  background: rgba(184,148,62,0.12);
   color: var(--gold-dark);
-  box-shadow: inset 0 0 0 1px rgba(184,148,62,0.15);
-}
-.discuss-like-btn.voted {
-  color: #C41E3A;
-  border-color: rgba(196,30,58,0.4);
-  background: rgba(196,30,58,0.08);
-  box-shadow: inset 0 0 0 1px rgba(196,30,58,0.12);
-}
-.discuss-dislike-btn.voted {
-  color: #8D6E63;
-  border-color: rgba(141,110,99,0.4);
-  background: rgba(141,110,99,0.06);
-  box-shadow: inset 0 0 0 1px rgba(141,110,99,0.1);
+  background: rgba(184,148,62,0.06);
 }
 .discuss-vote-btn svg {
-  width: 16px; height: 16px;
+  width: 15px; height: 15px;
   flex-shrink: 0;
+  opacity: 0.7;
+  transition: opacity 0.22s;
 }
+.discuss-vote-btn:hover svg,
+.discuss-vote-btn.voted svg { opacity: 1; }
 .discuss-vote-count {
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
   min-width: 16px;
   text-align: center;
   line-height: 1;
+}
+
+/* 点赞已投票 - 朱砂红印章 */
+.discuss-like-btn.voted {
+  color: #B81A2D;
+  border-color: rgba(184,26,45,0.45);
+  background: rgba(196,30,58,0.08);
+}
+/* 点踩已投票 - 墨褐 */
+.discuss-dislike-btn.voted {
+  color: #7B5E3B;
+  border-color: rgba(123,94,59,0.4);
+  background: rgba(123,94,59,0.06);
 }
 
 /* 管理员删除按钮 */
@@ -1935,23 +1933,23 @@ body {
   color: #D4B86A;
 }
 [data-theme="dark"] .discuss-vote-btn {
-  background: rgba(201,169,110,0.05);
-  border-color: rgba(201,169,110,0.18);
+  border-color: rgba(201,169,110,0.2);
+  color: #b0a890;
 }
 [data-theme="dark"] .discuss-vote-btn:hover {
-  background: rgba(201,169,110,0.1);
-  border-color: rgba(201,169,110,0.4);
-}
-[data-theme="dark"] .discuss-vote-btn.voted {
-  background: rgba(212,184,106,0.18);
+  border-color: rgba(212,184,106,0.45);
+  color: #D4B86A;
+  background: rgba(201,169,110,0.08);
 }
 [data-theme="dark"] .discuss-like-btn.voted {
-  background: rgba(196,30,58,0.14);
-  color: #EF5350;
+  color: #F48B94;
+  border-color: rgba(244,139,148,0.5);
+  background: rgba(239,83,80,0.12);
 }
 [data-theme="dark"] .discuss-dislike-btn.voted {
-  background: rgba(141,110,99,0.12);
-  color: #A1887F;
+  color: #C9A87C;
+  border-color: rgba(201,168,124,0.4);
+  background: rgba(161,136,127,0.1);
 }
 [data-theme="dark"] .discuss-delete-btn:hover {
   background: rgba(196,30,58,0.1);

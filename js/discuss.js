@@ -260,18 +260,18 @@
       html += '</div>';
       html += '<div class="disc-item-content">' + escapeHtml(post.content) + '</div>';
       html += '<div class="disc-item-actions">';
-      // 点赞按钮 - 水墨风格（竖排 + 印章感）
-      html += '<button class="disc-vote-btn disc-like-btn' + (userVote === 'like' ? ' voted' : '') + '" data-vote="like" data-id="' + post.id + '">';
-      html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.5 6.5L21 9l-5 4.5 1.5 6.5L12 16.5 6.5 20 8 13.5 3 9l6.5-.5z"/></svg>';
+      // 点赞 - 戏曲"赞"字印章风格
+      html += '<button class="disc-vote-btn disc-like-btn' + (userVote === 'like' ? ' voted' : '') + '" data-vote="like" data-id="' + post.id + '" title="赞">';
+      html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 22V11M2 13v7a2 2 0 0 0 2 2h12.4a2 2 0 0 0 1.94-1.52l2.1-8.4A2 2 0 0 0 18.5 10H14V5a3 3 0 0 0-3-3l-4 9"/></svg>';
       html += '<span class="disc-vote-count">' + post.likes + '</span>';
       html += '</button>';
-      // 点踩按钮
-      html += '<button class="disc-vote-btn disc-dislike-btn' + (userVote === 'dislike' ? ' voted' : '') + '" data-vote="dislike" data-id="' + post.id + '">';
-      html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+      // 点踩 - 水墨点墨风格
+      html += '<button class="disc-vote-btn disc-dislike-btn' + (userVote === 'dislike' ? ' voted' : '') + '" data-vote="dislike" data-id="' + post.id + '" title="踩">';
+      html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2v11m5-2v-7a2 2 0 0 0-2-2H7.6a2 2 0 0 0-1.94 1.52l-2.1 8.4A2 2 0 0 0 5.5 14H10v5a3 3 0 0 0 3 3l4-9"/></svg>';
       html += '<span class="disc-vote-count">' + post.dislikes + '</span>';
       html += '</button>';
-      // 管理员删除按钮
-      html += '<button class="disc-delete-btn" data-id="' + post.id + '" title="管理员删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>';
+      // 管理员删除
+      html += '<button class="disc-delete-btn" data-id="' + post.id + '" title="管理员删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>';
       html += '</div>';
       html += '</div>';
     }
