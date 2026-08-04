@@ -142,7 +142,7 @@
 
     // ========== 获取 ECharts 主题配色 ==========
     function getChartColors() {
-        var isDark = window.ThemeManager && window.ThemeManager.isDark();
+var isDark = window.ThemeManager && window.ThemeManager.isDark ? window.ThemeManager.isDark() : false;
         return {
             paperAreaColor: isDark ? '#1e2030' : '#F5EDE0',
             paperHoverColor: isDark ? '#2a2d3e' : '#EBE0CC',
@@ -158,7 +158,7 @@
     // ========== 初始化地图 ==========
     function initChart() {
         var dom = document.getElementById('mapChart');
-        chart = echarts.init(dom, null, { renderer: 'svg' });
+chart = echarts.init(dom);
         echarts.registerMap('china', geoJson);
 
         var colors = getChartColors();
