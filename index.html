@@ -226,6 +226,46 @@
                 <button class="pd-close-btn" id="pdCloseBtn">✕</button>
             </div>
             <div class="pd-body" id="pdBody"></div>
+            <!-- 分享按钮 -->
+            <div class="pd-share" id="pdShare">
+                <span class="pd-share-label">分享到：</span>
+                <button class="pd-share-btn wechat" onclick="window._sharePerf('wechat')" title="微信">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178A1.17 1.17 0 0 1 4.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178 1.17 1.17 0 0 1-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.453 3.666 4.229 6.884 4.229.826 0 1.622-.12 2.361-.336a.722.722 0 0 1 .598.082l1.584.926a.272.272 0 0 0 .14.047c.134 0 .24-.111.24-.247 0-.06-.023-.12-.038-.177l-.327-1.233a.582.582 0 0 1-.023-.156.49.49 0 0 1 .201-.398C23.024 18.48 24 16.82 24 14.98c0-3.21-2.931-5.952-7.062-6.122zm-2.18 2.769c.535 0 .969.44.969.982a.976.976 0 0 1-.969.983.976.976 0 0 1-.969-.983c0-.542.434-.982.97-.982zm4.844 0c.535 0 .969.44.969.982a.976.976 0 0 1-.969.983.976.976 0 0 1-.969-.983c0-.542.434-.982.97-.982z"/></svg>
+                </button>
+                <button class="pd-share-btn weibo" onclick="window._sharePerf('weibo')" title="微博">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10.098 20.323c-3.977.391-7.414-1.406-7.672-4.02-.259-2.609 2.759-5.047 6.74-5.441 3.979-.394 7.413 1.404 7.671 4.018.259 2.6-2.759 5.049-6.739 5.443zm-1.937-2.655c-.504.984-1.83 1.678-2.963 1.548-1.132-.13-1.643-1.055-1.138-2.04.504-.983 1.83-1.677 2.963-1.547 1.132.13 1.643 1.055 1.138 2.039zm2.59-2.999c-.18.346-.727.612-1.224.594-.497-.018-.755-.291-.575-.638.18-.346.726-.612 1.224-.594.497.018.755.291.575.638zM20.033 7.03c1.596 1.602 1.596 4.196 0 5.797-.27.27-.568.485-.882.646.126-.793-.068-1.67-.594-2.39l-.035-.045c-1.07-1.535-2.85-2.327-4.714-2.295-1.87.032-3.58.858-4.76 2.217-.309.356-.554.744-.72 1.15l-.05.13c-.146-.44-.218-.903-.218-1.368v-.071c0-1.41.566-2.77 1.598-3.77 1.596-1.603 4.196-1.603 5.797 0l.558.558.558-.558z"/></svg>
+                </button>
+                <button class="pd-share-btn qq" onclick="window._sharePerf('qq')" title="QQ">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.003 21.61c-2.523 0-4.566-2.043-4.566-4.566v-.855c-.858-.397-1.527-1.047-1.91-1.838-.383-.79-.45-1.67-.18-2.5.332-1.02 1.072-1.84 2.03-2.277.958-.436 2.06-.453 3.04-.049l.017.007c.23-.108.49-.195.765-.26.176-.04.356-.07.54-.09.153-.016.31-.024.468-.024h.2c.157 0 .31.008.464.025.186.02.367.05.544.09.275.065.534.152.764.26l.018-.008c.98-.404 2.082-.387 3.04.05.958.437 1.698 1.256 2.03 2.276.27.83.203 1.71-.18 2.5-.383.791-1.052 1.44-1.91 1.838v.855c0 2.523-2.044 4.566-4.566 4.566z"/></svg>
+                </button>
+                <button class="pd-share-btn copy" onclick="window._sharePerf('copy')" title="复制链接">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                </button>
+            </div>
+            <!-- 评分与评论 -->
+            <div class="pd-reviews" id="pdReviews">
+                <div class="pd-review-header">
+                    <h3 class="pd-review-title">观众评价</h3>
+                    <div class="pd-review-summary" id="pdReviewSummary"></div>
+                </div>
+                <div class="pd-review-form">
+                    <div class="pd-star-rating" id="pdStarRating">
+                        <span class="pd-star" data-star="1">★</span>
+                        <span class="pd-star" data-star="2">★</span>
+                        <span class="pd-star" data-star="3">★</span>
+                        <span class="pd-star" data-star="4">★</span>
+                        <span class="pd-star" data-star="5">★</span>
+                    </div>
+                    <div class="pd-review-input-row">
+                        <input type="text" id="pdReviewNickname" class="pd-review-nickname" placeholder="昵称" maxlength="20">
+                        <textarea id="pdReviewContent" class="pd-review-textarea" placeholder="分享你的观演体验..." maxlength="300" rows="2"></textarea>
+                        <button id="pdReviewSubmit" class="pd-review-submit">发表评价</button>
+                    </div>
+                </div>
+                <div class="pd-review-list" id="pdReviewList">
+                    <div class="pd-review-empty">暂无评价，成为第一个评价的人吧~</div>
+                </div>
+            </div>
             <div class="pd-footer">
                 <button class="pd-btn pd-btn-locate" id="pdBtnLocate">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2v4m0 12v4m-7.9-5.1L6 15m12.1-2.1L18 15M2 12h4m12 0h4"/></svg>

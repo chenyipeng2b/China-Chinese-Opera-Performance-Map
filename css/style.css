@@ -3188,6 +3188,290 @@ input, textarea, [contenteditable] {
 /* 暗色 */
 [data-theme="dark"] .pd-desc { color: #b0a890; }
 .pbt-cal-nav-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+/* ============================================
+   分享按钮
+   ============================================ */
+.pd-share {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border-top: 1px solid rgba(201,169,110,0.12);
+  border-bottom: 1px solid rgba(201,169,110,0.12);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.pd-share-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.pd-share-btn {
+  width: 32px; height: 32px;
+  border: 1px solid rgba(201,169,110,0.2);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  padding: 0;
+  flex-shrink: 0;
+}
+.pd-share-btn svg { width: 16px; height: 16px; }
+.pd-share-btn:hover { transform: translateY(-2px); box-shadow: 0 3px 8px rgba(139,115,85,0.15); }
+.pd-share-btn.wechat { color: #07C160; }
+.pd-share-btn.wechat:hover { background: rgba(7,193,96,0.1); border-color: #07C160; }
+.pd-share-btn.weibo { color: #E6162D; }
+.pd-share-btn.weibo:hover { background: rgba(230,22,45,0.08); border-color: #E6162D; }
+.pd-share-btn.qq { color: #12B7F5; }
+.pd-share-btn.qq:hover { background: rgba(18,183,245,0.08); border-color: #12B7F5; }
+.pd-share-btn.copy { color: var(--text-secondary); }
+.pd-share-btn.copy:hover { background: rgba(184,148,62,0.08); border-color: var(--gold); }
+.pd-share-btn.copied { color: #4CAF50; border-color: #4CAF50; background: rgba(76,175,80,0.08); }
+
+/* ============================================
+   评分与评论
+   ============================================ */
+.pd-reviews {
+  padding: 16px 20px 12px;
+  flex-shrink: 0;
+  border-top: 1px solid rgba(201,169,110,0.1);
+  overflow-y: auto;
+  max-height: 260px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(184,148,62,0.2) transparent;
+}
+.pd-reviews::-webkit-scrollbar { width: 4px; }
+.pd-reviews::-webkit-scrollbar-thumb { background: rgba(184,148,62,0.2); border-radius: 2px; }
+.pd-review-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.pd-review-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+.pd-review-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.pd-review-avg {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gold);
+}
+.pd-review-avg-stars {
+  color: var(--gold);
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+.pd-review-count {
+  color: var(--text-muted);
+}
+
+/* 星级评分输入 */
+.pd-star-rating {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+  direction: rtl;
+  justify-content: flex-end;
+}
+.pd-star {
+  font-size: 22px;
+  color: #d0d0d0;
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.pd-star:hover,
+.pd-star:hover ~ .pd-star,
+.pd-star.active,
+.pd-star.active ~ .pd-star {
+  color: #F5A623;
+  transform: scale(1.1);
+}
+[data-theme="dark"] .pd-star { color: #444; }
+[data-theme="dark"] .pd-star:hover,
+[data-theme="dark"] .pd-star:hover ~ .pd-star,
+[data-theme="dark"] .pd-star.active,
+[data-theme="dark"] .pd-star.active ~ .pd-star {
+  color: #F5A623;
+}
+
+/* 评论表单 */
+.pd-review-form {
+  margin-bottom: 12px;
+  padding: 10px;
+  background: rgba(184,148,62,0.04);
+  border: 1px solid rgba(201,169,110,0.1);
+  border-radius: 10px;
+}
+.pd-review-input-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pd-review-nickname {
+  padding: 7px 10px;
+  border: 1px solid rgba(201,169,110,0.2);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.pd-review-nickname:focus { border-color: var(--gold); }
+.pd-review-textarea {
+  padding: 8px 10px;
+  border: 1px solid rgba(201,169,110,0.2);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+  resize: vertical;
+  min-height: 40px;
+  transition: border-color 0.2s;
+}
+.pd-review-textarea:focus { border-color: var(--gold); }
+.pd-review-submit {
+  padding: 8px 0;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #B8943E, #C9A96E);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.pd-review-submit:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(184,148,62,0.3);
+}
+.pd-review-submit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 评论列表 */
+.pd-review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pd-review-empty {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.pd-review-item {
+  padding: 10px 12px;
+  background: rgba(184,148,62,0.03);
+  border: 1px solid rgba(201,169,110,0.06);
+  border-radius: 10px;
+  transition: background 0.15s;
+}
+.pd-review-item:hover { background: rgba(184,148,62,0.06); }
+.pd-review-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.pd-review-item-user {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gold-dark);
+}
+.pd-review-item-stars {
+  color: #F5A623;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+.pd-review-item-content {
+  font-size: 12px;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+.pd-review-item-time {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.pd-review-item-delete {
+  font-size: 10px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.pd-review-item-delete:hover {
+  color: #E53935;
+  border-color: rgba(229,57,53,0.2);
+}
+
+[data-theme="dark"] .pd-review-form {
+  background: rgba(22,33,62,0.4);
+  border-color: rgba(201,169,110,0.15);
+}
+[data-theme="dark"] .pd-review-nickname,
+[data-theme="dark"] .pd-review-textarea {
+  background: rgba(22,33,62,0.6);
+  border-color: rgba(201,169,110,0.2);
+  color: #e0d8c8;
+}
+[data-theme="dark"] .pd-review-item {
+  background: rgba(22,33,62,0.3);
+  border-color: rgba(201,169,110,0.08);
+}
+
+/* 分享提示 toast */
+.share-toast {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.8);
+  color: #fff;
+  padding: 10px 24px;
+  border-radius: 20px;
+  font-size: 13px;
+  z-index: 600;
+  animation: shareToastIn 0.3s ease, shareToastOut 0.3s ease 1.5s forwards;
+  pointer-events: none;
+}
+@keyframes shareToastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+@keyframes shareToastOut {
+  from { opacity: 1; }
+  to { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+}
 .pbt-cal-nav-title {
   font-size: 14px;
   font-weight: 700;
