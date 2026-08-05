@@ -327,10 +327,7 @@ chart = echarts.init(dom);
             }
         });
 
-        OperaLog.info('地图', 'ECharts 初始化完成', {
-            renderer: 'svg',
-            regions: geoJson ? geoJson.features.length : 0
-        });
+        console.log('[地图] ECharts 初始化完成, 区域数:', geoJson ? geoJson.features.length : 0);
     }
 
     // ========== 按坐标合并同一剧院的多场演出 ==========
@@ -810,7 +807,7 @@ chart = echarts.init(dom);
 
     // ========== 主初始化 ==========
     async function main() {
-        OperaLog.info('系统', '开始初始化');
+        console.log('[系统] 开始初始化');
         var initStartTime = performance.now();
 
         try {
@@ -821,11 +818,7 @@ chart = echarts.init(dom);
                     initChart();
                     updateMapData();
                 } catch(e) {
-                    OperaLog.error('地图', '地图初始化失败', {
-                        errorMessage: e.message,
-                        errorName: e.name,
-                        geoOk: geoOk
-                    });
+                    console.error('[地图] 初始化失败:', e.message);
                     document.getElementById('error').style.display = 'flex';
                     document.getElementById('errorMsg').textContent = '地图渲染失败: ' + e.message;
                     updateStats();
@@ -841,22 +834,14 @@ chart = echarts.init(dom);
                 buildGenreTags();
             }
         } catch(e) {
-            OperaLog.error('系统', '启动过程致命错误', {
-                errorMessage: e.message,
-                errorName: e.name,
-                errorStack: e.stack
-            });
+            console.error('[系统] 启动失败:', e.message, e.stack);
             document.getElementById('error').style.display = 'flex';
             document.getElementById('errorMsg').textContent = '系统初始化失败: ' + e.message;
         }
 
         document.getElementById('loading').style.display = 'none';
         var totalElapsed = Math.round(performance.now() - initStartTime);
-        OperaLog.info('系统', '启动完成', {
-            mapAvailable: geoOk,
-            performanceCount: allPerformances.length,
-            totalInitTimeMs: totalElapsed
-        });
+        console.log('[系统] 启动完成, 耗时:', totalElapsed + 'ms, 地图:', geoOk, '演出数:', allPerformances.length);
     }
 
     main();
