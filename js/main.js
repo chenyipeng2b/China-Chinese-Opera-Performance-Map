@@ -24,7 +24,7 @@
 
         var failures = [];
 
-for (var i = 0; i < sources.length; i++) {
+        for (var i = 0; i < sources.length; i++) {
             var src = sources[i];
             try {
                 var resp = await fetch(src.url);
