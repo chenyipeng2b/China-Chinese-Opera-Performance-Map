@@ -137,20 +137,24 @@ var isDark = window.ThemeManager && window.ThemeManager.isDark ? window.ThemeMan
     // ========== 初始化地图 ==========
     function initChart() {
         var dom = document.getElementById('mapChart');
-chart = echarts.init(dom);
+chart = echarts.init(dom, null, { devicePixelRatio: window.devicePixelRatio || 1 });
         echarts.registerMap('china', geoJson);
 
         var colors = getChartColors();
 
         var option = {
             backgroundColor: 'transparent',
+            animation: true,
+            animationDuration: 800,
+            animationEasing: 'cubicInOut',
             geo: {
                 map: 'china',
-                roam: !isMobile,  // 桌面端默认开启 roam，移动端默认关闭（使用手势）
+                roam: !isMobile,
                 zoom: 1.15,
                 center: [104.5, 35.5],
                 aspectScale: 0.85,
                 scaleLimit: { min: 0.8, max: 8 },
+                silent: false,
                 label: {
                     show: true,
                     color: colors.labelColor,
@@ -168,16 +172,26 @@ chart = echarts.init(dom);
                 },
                 emphasis: {
                     label: {
+                        show: true,
                         color: colors.emphasisLabelColor,
-                        fontSize: 12,
-                        fontFamily: '"Noto Sans SC", "Microsoft YaHei", "PingFang SC", "SimHei", sans-serif'
+                        fontSize: 13,
+                        fontWeight: 'bold',
+                        fontFamily: '"STKaiti","KaiTi","楷体","Noto Sans SC","Microsoft YaHei",sans-serif'
                     },
                     itemStyle: {
                         areaColor: colors.paperHoverColor,
                         borderColor: colors.emphasisBorderColor,
-                        borderWidth: 2
-                    }
-                }
+                        borderWidth: 2,
+                        shadowBlur: 16,
+                        shadowColor: 'rgba(184,148,62,0.3)'
+                    },
+                    scale: 1.02
+                },
+                regions: [{
+                    name: '南海诸岛',
+                    itemStyle: { areaColor: colors.paperAreaColor },
+                    label: { show: false }
+                }]
             },
             series: [
                 {
@@ -185,11 +199,11 @@ chart = echarts.init(dom);
                     type: 'effectScatter',
                     coordinateSystem: 'geo',
                     data: [],
-                    symbolSize: 8,
+                    symbolSize: function(val) { return val && val[2] > 1 ? 13 : 9; },
                     showEffectOn: 'render',
-                    rippleEffect: { brushType: 'stroke', scale: 2.2, period: 5, color: '#E53935' },
-                    itemStyle: { color: '#E53935', shadowBlur: 8, shadowColor: 'rgba(229,57,53,0.5)' },
-                    emphasis: { scale: 1.6, itemStyle: { shadowBlur: 20, shadowColor: 'rgba(229,57,53,0.7)' } },
+                    rippleEffect: { brushType: 'stroke', scale: 2.5, period: 4.5, color: '#E53935' },
+                    itemStyle: { color: '#E53935', shadowBlur: 10, shadowColor: 'rgba(229,57,53,0.55)' },
+                    emphasis: { scale: 2.0, itemStyle: { shadowBlur: 24, shadowColor: 'rgba(229,57,53,0.8)' } },
                     zlevel: 1
                 },
                 {
@@ -197,11 +211,11 @@ chart = echarts.init(dom);
                     type: 'effectScatter',
                     coordinateSystem: 'geo',
                     data: [],
-                    symbolSize: 7,
+                    symbolSize: function(val) { return val && val[2] > 1 ? 11 : 7; },
                     showEffectOn: 'render',
-                    rippleEffect: { brushType: 'stroke', scale: 2, period: 5, color: '#00ACC1' },
-                    itemStyle: { color: '#00ACC1', shadowBlur: 6, shadowColor: 'rgba(0,172,193,0.4)' },
-                    emphasis: { scale: 1.6, itemStyle: { shadowBlur: 18, shadowColor: 'rgba(0,172,193,0.6)' } },
+                    rippleEffect: { brushType: 'stroke', scale: 2.2, period: 5, color: '#00ACC1' },
+                    itemStyle: { color: '#00ACC1', shadowBlur: 8, shadowColor: 'rgba(0,172,193,0.45)' },
+                    emphasis: { scale: 2.0, itemStyle: { shadowBlur: 20, shadowColor: 'rgba(0,172,193,0.65)' } },
                     zlevel: 1
                 },
                 {
@@ -209,9 +223,9 @@ chart = echarts.init(dom);
                     type: 'scatter',
                     coordinateSystem: 'geo',
                     data: [],
-                    symbolSize: 6,
-                    itemStyle: { color: '#8D6E63', shadowBlur: 3, shadowColor: 'rgba(141,110,99,0.25)', opacity: 0.75 },
-                    emphasis: { scale: 1.6, itemStyle: { opacity: 1, shadowBlur: 12 } },
+                    symbolSize: function(val) { return val && val[2] > 1 ? 10 : 6; },
+                    itemStyle: { color: '#8D6E63', shadowBlur: 4, shadowColor: 'rgba(141,110,99,0.3)', opacity: 0.8 },
+                    emphasis: { scale: 2.0, itemStyle: { opacity: 1, shadowBlur: 14 } },
                     zlevel: 1
                 },
                 {
@@ -219,11 +233,11 @@ chart = echarts.init(dom);
                     type: 'effectScatter',
                     coordinateSystem: 'geo',
                     data: [],
-                    symbolSize: 9,
+                    symbolSize: function(val) { return val && val[2] > 1 ? 13 : 9; },
                     showEffectOn: 'render',
                     rippleEffect: { brushType: 'stroke', scale: 2, period: 4, color: '#4CAF50' },
                     itemStyle: { color: '#4CAF50', shadowBlur: 12, shadowColor: 'rgba(76,175,80,0.5)' },
-                    emphasis: { scale: 1.6, itemStyle: { shadowBlur: 22, shadowColor: 'rgba(76,175,80,0.7)' } },
+                    emphasis: { scale: 2.0, itemStyle: { shadowBlur: 22, shadowColor: 'rgba(76,175,80,0.7)' } },
                     zlevel: 1
                 }
             ]
@@ -269,22 +283,33 @@ chart = echarts.init(dom);
             }
         }
 
-        // 事件
+        // ===== 事件处理 =====
+        // 悬停标记点 → 显示信息卡片
         chart.on('mouseover', 'series', function(params) {
             if (params.data && params.data._perfs) {
                 showTooltip(params.data._perfs, params.data._address, params.event.event);
             } else if (params.data && params.data._perf) {
-                // 向后兼容单个演出数据
                 showTooltip([params.data._perf], params.data._perf.address, params.event.event);
             }
         });
+        // 鼠标移出标记点 → 桌面端隐藏卡片
         chart.on('mouseout', 'series', function() {
             if (!isMobile) {
                 tooltip.classList.remove('visible');
             }
         });
 
-        // 点击省份显示该省剧种（再次点击同一省份关闭）
+        // 点击标记点 → 固定显示信息卡片（移动端）/ 桌面端触发详情
+        chart.on('click', 'series', function(params) {
+            if (params.data && params.data._perfs) {
+                if (isMobile) {
+                    // 移动端点击标记点固定卡片
+                    showTooltip(params.data._perfs, params.data._address, params.event.event);
+                }
+            }
+        });
+
+        // 点击省份 → 显示该省剧种统计
         var lastClickedProvince = null;
         chart.on('click', 'geo', function(params) {
             if (!params.region) {
@@ -303,7 +328,7 @@ chart = echarts.init(dom);
             showProvinceGenres(provinceName, params.event.event);
         });
 
-        // 点击地图区域外部关闭省份 tooltip
+        // 点击地图外部 → 关闭 tooltip
         document.addEventListener('click', function(e) {
             if (!tooltip.classList.contains('visible')) return;
             var isTooltip = tooltip.contains(e.target);
@@ -386,15 +411,16 @@ chart = echarts.init(dom);
             var liveData = [], upcomingData = [], endedData = [], manualData = [];
 
             groups.forEach(function(g) {
+                var count = g.performances.length;
                 var pt = {
-                    name: g.performances.length > 1 ? (g.address + ' (' + g.performances.length + '场)') : g.address,
-                    value: [g.lng, g.lat],
+                    name: count > 1 ? (g.address + ' (' + count + '场)') : g.address,
+                    value: [g.lng, g.lat, count],
                     _perfs: g.performances,
-                    _count: g.performances.length,
+                    _count: count,
                     _address: g.address,
                     _city: g.city,
                     _province: g.province,
-                    symbolSize: g.performances.length > 1 ? 13 : undefined
+                    symbolSize: count > 1 ? 13 : undefined
                 };
                 if (g.bestStatus === 'live') liveData.push(pt);
                 else if (g.bestStatus === 'upcoming') upcomingData.push(pt);
@@ -1022,7 +1048,7 @@ chart = echarts.init(dom);
     // ========== 悬浮提示 ==========
     function showTooltip(perfs, venueName, event) {
         var stMap = {
-            live: ['正在演出','live','#E53935'],
+            live: ['演出中','live','#E53935'],
             upcoming: ['即将演出','upcoming','#00ACC1'],
             ended: ['已结束','ended','#8D6E63']
         };
@@ -1043,32 +1069,46 @@ chart = echarts.init(dom);
         else if (hasUpcoming) bestStatus = 'upcoming';
 
         var st = stMap[bestStatus];
-        var countBadge = sorted.length > 1 ? '<span class="tt-count-badge">共 ' + sorted.length + ' 场演出</span>' : '';
+        var countBadge = sorted.length > 1 ? '<span class="tt-count-badge">共 ' + sorted.length + ' 场</span>' : '';
+        var cityName = sorted[0].city || '';
+        var genreIcon = getGenreIcon(sorted[0].genre || '');
 
         var html = '';
         if (isMobile) {
             html += '<button class="tt-close-btn" onclick="document.getElementById(\'tooltip\').classList.remove(\'visible\')">✕</button>';
         }
-        html += '<span class="tt-status ' + st[1] + '" style="background:' + st[2] + '"></span>' +
-            '<span style="color:' + st[2] + ';font-size:11px;">' + st[0] + '</span>' + countBadge +
-            '<div class="tt-venue">📍 ' + escapeHtml(venueName || sorted[0].address) + '</div>';
+        // 头部：状态 + 城市 + 数量
+        html += '<div style="padding:8px 16px 4px">' +
+            '<span class="tt-status ' + st[1] + '" style="background:' + st[2] + '"></span>' +
+            '<span style="color:' + st[2] + ';font-size:12px;font-weight:600;">' + st[0] + '</span>' +
+            (cityName ? '<span style="color:var(--text-muted);font-size:11px;margin-left:8px;">' + escapeHtml(cityName) + '</span>' : '') +
+            countBadge +
+            '</div>' +
+            '<div class="tt-venue">' + escapeHtml(venueName || sorted[0].address || sorted[0].venue || '') + '</div>';
 
         html += '<div class="tt-perf-list">';
         sorted.forEach(function(p) {
             var pst = stMap[p._status || 'upcoming'];
             var cd = getCountdown(p);
             var genreClr = getGenreColor(p.genre || '戏曲');
-            html += '<div class="tt-perf-item" onclick="window._flyTo(' + p.lng + ',' + p.lat + ')" style="cursor:pointer">' +
+            var perfData = JSON.stringify({
+                name: p.name, city: p.city, startDate: p.startDate, endDate: p.endDate,
+                genre: p.genre, actors: p.actors || '', venue: p.address || p.venue || '',
+                lng: p.lng, lat: p.lat, troupe: p.troupe || '',
+                duration: p.duration || '', description: p.description || '',
+                price: p.price || '', transport: p.transport || ''
+            }).replace(/"/g, '&quot;').replace(/'/g, "\\'");
+            html += '<div class="tt-perf-item" onclick="window._openPerfDetail(\'' + perfData + '\')">' +
                 '<span class="tt-dot" style="background:' + pst[2] + '"></span>' +
                 '<div class="tt-perf-body">' +
                 '<span class="tt-perf-name">' + escapeHtml(p.name) + '</span>' +
                 '<span class="tt-perf-meta">' +
-                '<span style="display:inline-block;background:' + genreClr + ';color:#fff;padding:1px 6px;border-radius:3px;font-size:10px;margin-right:4px;">' + escapeHtml(p.genre || '戏曲') + '</span>' +
-                escapeHtml(p.troupe || '未知剧团') +
+                '<span style="display:inline-block;background:' + genreClr + ';color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;">' + escapeHtml(p.genre || '戏曲') + '</span>' +
+                escapeHtml(p.troupe || '') +
                 '</span>' +
-                '<span class="tt-perf-date">📅 ' + p.startDate + ' ~ ' + p.endDate + '</span>' +
-                '<span class="tt-countdown ' + cd.cls + '">⏱ ' + cd.text + '</span>' +
-                (p.actors ? '<div class="tt-actors">🎭 ' + escapeHtml(p.actors) + '</div>' : '') +
+                '<span class="tt-perf-date">' + p.startDate + ' ~ ' + p.endDate + '</span>' +
+                (cd.text !== '已结束' ? '<span class="tt-countdown ' + cd.cls + '">' + cd.text + '</span>' : '') +
+                (p.actors ? '<span class="tt-perf-actors">' + escapeHtml(p.actors) + '</span>' : '') +
                 '</div></div>';
         });
         html += '</div>';
@@ -1077,6 +1117,8 @@ chart = echarts.init(dom);
         if (sorted.length === 1 && sorted[0].description) {
             html += '<div class="tt-desc">' + escapeHtml(sorted[0].description) + '</div>';
         }
+
+        html += '<div class="tt-close-hint">点击演出查看详情 · 点击空白关闭</div>';
 
         tooltip.innerHTML = html;
         tooltip.classList.add('visible');
