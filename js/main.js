@@ -277,14 +277,22 @@ chart = echarts.init(dom);
             }
         });
 
-        // 点击省份显示该省剧种
+        // 点击省份显示该省剧种（再次点击同一省份关闭）
+        var lastClickedProvince = null;
         chart.on('click', 'geo', function(params) {
             if (!params.region) {
-                // 点击地图空白区域关闭 tooltip
                 tooltip.classList.remove('visible');
+                lastClickedProvince = null;
                 return;
             }
             var provinceName = params.region;
+            // 再次点击同一省份 → 关闭
+            if (lastClickedProvince === provinceName && tooltip.classList.contains('visible')) {
+                tooltip.classList.remove('visible');
+                lastClickedProvince = null;
+                return;
+            }
+            lastClickedProvince = provinceName;
             showProvinceGenres(provinceName, params.event.event);
         });
 
@@ -326,6 +334,15 @@ chart = echarts.init(dom);
         });
 
         console.log('[地图] ECharts 初始化完成, 区域数:', geoJson ? geoJson.features.length : 0);
+
+        // 地图回中按钮
+        var resetBtn = document.getElementById('mapResetBtn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', function() {
+                chart.dispatchAction({ type: 'restore' });
+                tooltip.classList.remove('visible');
+            });
+        }
     }
 
     // ========== 按坐标合并同一剧院的多场演出 ==========
@@ -608,9 +625,7 @@ chart = echarts.init(dom);
         });
 
         var html = '';
-        if (isMobile) {
-            html += '<button class="tt-close-btn" onclick="document.getElementById(\'tooltip\').classList.remove(\'visible\')">✕</button>';
-        }
+        html += '<button class="tt-close-btn" onclick="document.getElementById(\'tooltip\').classList.remove(\'visible\')">✕</button>';
         html += '<div style="font-size:16px;font-weight:bold;color:var(--gold);margin-bottom:8px;">📍 ' + escapeHtml(provinceName) + '</div>';
         html += '<div style="display:flex;gap:12px;margin-bottom:10px;font-size:12px;">';
         html += '<span style="color:#E53935;">● 演出中 ' + liveCount + '</span>';

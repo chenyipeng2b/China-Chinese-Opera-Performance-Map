@@ -480,6 +480,36 @@ body {
   border-radius: 20px;
   padding: 6px 16px;
   font-size: 11px;
+  pointer-events: none;
+}
+
+/* 地图回中按钮 */
+.map-reset-btn {
+  position: absolute;
+  bottom: 16px; right: 16px;
+  width: 36px; height: 36px;
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  background: var(--glass-bg);
+  color: var(--gold);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  z-index: 20;
+  box-shadow: 0 2px 8px rgba(139,115,85,0.12);
+  -webkit-tap-highlight-color: transparent;
+}
+.map-reset-btn:hover {
+  background: rgba(184,148,62,0.12);
+  border-color: var(--gold);
+  transform: rotate(180deg);
+}
+.map-reset-btn:active {
+  transform: rotate(180deg) scale(0.9);
+}
   color: var(--gold-dark);
   pointer-events: none;
   opacity: 0;
