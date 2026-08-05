@@ -24,57 +24,31 @@
 
         var failures = [];
 
-        for (var i = 0; i < sources.length; i++) {
+for (var i = 0; i < sources.length; i++) {
             var src = sources[i];
             try {
-                var startTime = performance.now();
                 var resp = await fetch(src.url);
-                if (!resp.ok) throw new Error('HTTP ' + resp.status + ' ' + resp.statusText);
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
                 var text = await resp.text();
                 geoJson = JSON.parse(text);
-                var elapsed = Math.round(performance.now() - startTime);
-                OperaLog.info('地图', 'GeoJSON 从 ' + src.name + ' 加载成功', {
-                    source: src.url,
-                    regions: geoJson.features.length,
-                    dataSize: text.length,
-                    loadTimeMs: elapsed
-                });
                 return true;
             } catch(e) {
                 failures.push({ name: src.name, url: src.url, error: e.message });
-                OperaLog.warn('地图', 'GeoJSON 源 ' + src.name + ' 加载失败', {
-                    url: src.url,
-                    errorMessage: e.message,
-                    attemptIndex: i + 1,
-                    totalAttempts: sources.length
-                });
             }
         }
-
-        OperaLog.error('地图', '所有 GeoJSON 源均加载失败', {
-            totalSources: sources.length,
-            allFailures: failures
-        });
+        console.error('[地图] GeoJSON 加载失败:', failures);
         return false;
     }
 
     // ========== 加载演出数据 ==========
     async function loadPerformances() {
         try {
-            var startTime = performance.now();
             var resp = await fetch('data/performances.json');
             if (!resp.ok) throw new Error('HTTP ' + resp.status);
             allPerformances = await resp.json();
-            var elapsed = Math.round(performance.now() - startTime);
-            OperaLog.info('数据', '演出数据加载成功', {
-                count: allPerformances.length,
-                loadTimeMs: elapsed,
-                genres: allPerformances.map(function(p) { return p.genre; }).filter(function(v, i, a) { return a.indexOf(v) === i; })
-            });
         } catch(e) {
-            OperaLog.error('数据', '演出数据加载失败', {
-                errorMessage: e.message,
-                url: 'data/performances.json'
+            console.error('[数据] 演出数据加载失败:', e.message);
+        }
             });
             allPerformances = [];
         }
