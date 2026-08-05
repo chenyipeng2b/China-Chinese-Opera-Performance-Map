@@ -464,13 +464,17 @@ chart = echarts.init(dom);
 
                 if (g.performances.length === 1) {
                     var p = g.performances[0];
-                    html += '<div class="perf-card" onclick="window._flyTo(' + g.lng + ',' + g.lat + ')" style="cursor:pointer">' +
+                    var perfData = JSON.stringify({
+                        name: p.name, city: p.city, startDate: p.startDate, endDate: p.endDate,
+                        genre: p.genre, actors: p.actors || '', venue: p.venue || '', lng: g.lng, lat: g.lat
+                    }).replace(/'/g, "\\'");
+                    html += '<div class="perf-card" onclick="window._openPerfDetail(\'' + perfData + '\')" style="cursor:pointer">' +
                         '<span style="color:' + bestColor + ';margin-right:4px;">●</span>' +
                         '<span class="pc-name">' + escapeHtml(p.name) + '</span>' +
                         '<div class="pc-info">' + escapeHtml(p.city) + ' · ' + p.startDate + '</div>' +
                         '</div>';
                 } else {
-                    html += '<div class="perf-card perf-group" onclick="window._flyTo(' + g.lng + ',' + g.lat + ')" style="cursor:pointer">' +
+                    html += '<div class="perf-card perf-group" style="cursor:default">' +
                         '<span style="color:' + bestColor + ';margin-right:4px;">●</span>' +
                         '<span class="pc-name">' + escapeHtml(g.address) + '</span>' +
                         '<span class="pc-count">' + g.performances.length + '场演出</span>' +
@@ -479,7 +483,11 @@ chart = echarts.init(dom);
                     g.performances.sort(function(a, b) { return a.startDate.localeCompare(b.startDate); })
                         .forEach(function(p) {
                             var pColor = p._status === 'live' ? '#E53935' : p._status === 'upcoming' ? '#00ACC1' : '#8D6E63';
-                            html += '<div class="pc-sub-item">' +
+                            var subData = JSON.stringify({
+                                name: p.name, city: p.city, startDate: p.startDate, endDate: p.endDate,
+                                genre: p.genre, actors: p.actors || '', venue: p.venue || '', lng: g.lng, lat: g.lat
+                            }).replace(/'/g, "\\'");
+                            html += '<div class="pc-sub-item" onclick="event.stopPropagation();window._openPerfDetail(\'' + subData + '\')" style="cursor:pointer">' +
                                 '<span style="color:' + pColor + ';font-size:10px;">●</span> ' +
                                 escapeHtml(p.name) + ' <span class="pc-sub-date">' + p.startDate + '~' + p.endDate + '</span>' +
                                 '</div>';
@@ -507,6 +515,107 @@ chart = echarts.init(dom);
             setTimeout(function() { chart.setOption({ geo: { center: [104.5, 35.5], zoom: 1.15 } }); }, 2000);
         }
     };
+
+    // 打开演出详情浮层
+    window._openPerfDetail = function(jsonStr) {
+        var data;
+        try { data = JSON.parse(jsonStr); } catch(e) { return; }
+
+        var overlay = document.getElementById('perfDetailOverlay');
+        if (!overlay) return;
+
+        document.getElementById('pdName').textContent = data.name || '未知演出';
+
+        var statusText = '';
+        var statusColor = '#8D6E63';
+        var today = new Date();
+        var start = new Date(data.startDate + 'T00:00:00');
+        var end = new Date(data.endDate + 'T23:59:59');
+        if (start <= today && today <= end) { statusText = '演出中'; statusColor = '#E53935'; }
+        else if (today < start) { statusText = '即将演出'; statusColor = '#00ACC1'; }
+        else { statusText = '已结束'; statusColor = '#8D6E63'; }
+
+        var bodyHtml = '';
+        // 剧种
+        if (data.genre) {
+            bodyHtml += '<div class="pd-info-row">' +
+                '<svg class="pd-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>' +
+                '<span class="pd-genre-tag">' + escapeHtml(data.genre) + '</span>' +
+                '</div>';
+        }
+        // 状态
+        bodyHtml += '<div class="pd-info-row">' +
+            '<svg class="pd-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' +
+            '<span class="pd-info-label">状态</span>' +
+            '<span class="pd-info-value" style="color:' + statusColor + ';">' + statusText + '</span>' +
+            '</div>';
+        // 日期
+        bodyHtml += '<div class="pd-info-row">' +
+            '<svg class="pd-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' +
+            '<span class="pd-info-label">日期</span>' +
+            '<span class="pd-info-value">' + (data.startDate || '') + ' ~ ' + (data.endDate || '') + '</span>' +
+            '</div>';
+        // 场馆
+        if (data.venue) {
+            bodyHtml += '<div class="pd-info-row">' +
+                '<svg class="pd-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' +
+                '<span class="pd-info-label">场馆</span>' +
+                '<span class="pd-info-value">' + escapeHtml(data.venue) + '</span>' +
+                '</div>';
+        }
+        // 城市
+        if (data.city) {
+            bodyHtml += '<div class="pd-info-row">' +
+                '<svg class="pd-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>' +
+                '<span class="pd-info-label">城市</span>' +
+                '<span class="pd-info-value">' + escapeHtml(data.city) + '</span>' +
+                '</div>';
+        }
+        // 演员
+        if (data.actors) {
+            bodyHtml += '<div class="pd-info-row">' +
+                '<svg class="pd-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' +
+                '<span class="pd-info-label">演员</span>' +
+                '<span class="pd-info-value">' + escapeHtml(data.actors) + '</span>' +
+                '</div>';
+        }
+        bodyHtml += '<hr class="pd-divider">';
+        // 演出简介
+        bodyHtml += '<div style="font-size:13px;color:var(--text-secondary);line-height:1.7;">' +
+            escapeHtml(data.name) + '，将于 ' + (data.startDate || '') + ' 至 ' + (data.endDate || '') + ' 在' +
+            escapeHtml(data.city || '') + (data.venue ? escapeHtml(data.venue) : '') + '上演。' +
+            '</div>';
+
+        document.getElementById('pdBody').innerHTML = bodyHtml;
+
+        // 按钮事件
+        var locateBtn = document.getElementById('pdBtnLocate');
+        locateBtn.onclick = function() {
+            window._closePerfDetail();
+            if (data.lng && data.lat) window._flyTo(data.lng, data.lat);
+        };
+
+        var searchBtn = document.getElementById('pdBtnSearch');
+        searchBtn.onclick = function() {
+            var query = encodeURIComponent(data.name + (data.genre ? ' ' + data.genre : '') + ' 演出');
+            window.open('https://www.baidu.com/s?wd=' + query, '_blank');
+        };
+
+        overlay.classList.add('visible');
+        document.body.style.overflow = 'hidden';
+    };
+
+    // 关闭演出详情浮层
+    window._closePerfDetail = function() {
+        var overlay = document.getElementById('perfDetailOverlay');
+        if (overlay) overlay.classList.remove('visible');
+        document.body.style.overflow = '';
+    };
+
+    // 点击遮罩关闭
+    document.getElementById('perfDetailOverlay').addEventListener('click', function(e) {
+        if (e.target === this) window._closePerfDetail();
+    });
 
     // ========== 悬浮提示 ==========
     function showTooltip(perfs, venueName, event) {

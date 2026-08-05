@@ -141,6 +141,28 @@
     <!-- 悬浮提示 -->
     <div class="info-tooltip" id="tooltip"></div>
 
+    <!-- 演出详情浮层 -->
+    <div class="perf-detail-overlay" id="perfDetailOverlay">
+        <div class="perf-detail-card" id="perfDetailCard">
+            <div class="pd-header">
+                <h2 class="pd-name" id="pdName"></h2>
+                <button class="pd-close-btn" onclick="window._closePerfDetail()">✕</button>
+            </div>
+            <div class="pd-body" id="pdBody"></div>
+            <div class="pd-footer">
+                <button class="pd-btn pd-btn-locate" id="pdBtnLocate">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2v4m0 12v4m-7.9-5.1L6 15m12.1-2.1L18 15M2 12h4m12 0h4"/></svg>
+                    地图定位
+                </button>
+                <button class="pd-btn pd-btn-search" id="pdBtnSearch">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    搜索演出
+                </button>
+                <button class="pd-btn pd-btn-close" onclick="window._closePerfDetail()">关闭</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 日志面板 -->
     <div class="log-panel-overlay" id="logOverlay"></div>
     <div class="log-panel" id="logPanel">
