@@ -89,10 +89,34 @@
         </section>
     </div>
 
-    <!-- 底部演出条 -->
-    <div class="perf-bar">
-        <div class="perf-bar-title">📅 近期演出</div>
-        <div class="perf-list" id="perfList"></div>
+    <!-- 底部演出条（重构版） -->
+    <div class="perf-bar-v2" id="perfBarV2">
+        <!-- 顶部：时间筛选器 -->
+        <div class="perf-bar-v2-header">
+            <span class="perf-bar-v2-title">📅 近期演出</span>
+            <div class="perf-bar-v2-tabs" id="perfTimeTabs">
+                <button class="pbt-tab active" data-tab="today">今日</button>
+                <button class="pbt-tab" data-tab="week">本周</button>
+                <button class="pbt-tab" data-tab="month">本月</button>
+                <button class="pbt-tab" data-tab="all">全部</button>
+            </div>
+            <div class="perf-bar-v2-actions">
+                <button class="pbt-view-btn active" data-view="group" id="pbtViewGroup" title="分组视图">📋</button>
+                <button class="pbt-view-btn" data-view="table" id="pbtViewTable" title="表格视图">📊</button>
+                <button class="pbt-view-btn" data-view="calendar" id="pbtViewCal" title="日历视图">📅</button>
+            </div>
+        </div>
+        <!-- 中部：按城市分组的内容区 -->
+        <div class="perf-bar-v2-body" id="perfBarV2Body">
+            <!-- 分组视图 -->
+            <div class="pbt-view pbt-view-group" id="pbtViewGroupContent"></div>
+            <!-- 表格视图 -->
+            <div class="pbt-view pbt-view-table" id="pbtViewTableContent" style="display:none"></div>
+            <!-- 日历视图 -->
+            <div class="pbt-view pbt-view-calendar" id="pbtViewCalContent" style="display:none"></div>
+        </div>
+        <!-- 底部：统计条 -->
+        <div class="perf-bar-v2-stats" id="perfBarV2Stats"></div>
     </div>
 
     <!-- 讨论区面板 -->

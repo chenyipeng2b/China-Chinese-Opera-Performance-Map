@@ -421,19 +421,389 @@ chart = echarts.init(dom);
         buildGenreTags();
     }
 
-    // ========== 底部演出列表（按日期分组折叠） ==========
+    // ========== 剧种图标映射 ==========
+    var genreIcons = {
+        '京剧': '🎭', '昆曲': '🌸', '越剧': '🌙', '豫剧': '🦁', '川剧': '🔥',
+        '黄梅戏': '💛', '评剧': '🎵', '秦腔': '🏔️', '晋剧': '⛩️', '粤剧': '🐲',
+        '汉剧': '🏯', '湘剧': '🌿', '徽剧': '⛰️', '赣剧': '🏞️', '滇剧': '🌈',
+        '沪剧': '🌊', '锡剧': '🎋', '扬剧': '🌾', '淮剧': '🏠', '吕剧': '🕊️',
+        '柳子戏': '🍃', '河北梆子': '🏛️', '河南曲剧': '🪕', '二人台': '💃',
+        '花鼓戏': '🥁', '皮影戏': '👥', '木偶戏': '🪆', '高甲戏': '⚔️',
+        '歌仔戏': '🎶', '莆仙戏': '🏮', '梨园戏': '🍐', '潮剧': '🌺',
+        '瓯剧': '🦅', '绍剧': '🎪', '婺剧': '🦋', '甬剧': '🕯️',
+        '折子戏': '📜', '傩戏': '👹', '藏戏': '🏔️', '壮剧': '🌴',
+        '侗戏': '🎋', '苗剧': '🏕️', '白剧': '❄️', '傣剧': '🌴'
+    };
+    function getGenreIcon(genre) {
+        return genreIcons[genre] || '🎬';
+    }
+
+    // ========== 演出状态计算辅助 ==========
+    function getPerfStatus(perf) {
+        var now = new Date();
+        var start = new Date(perf.startDate + 'T00:00:00');
+        var end = new Date(perf.endDate + 'T23:59:59');
+        if (start <= now && now <= end) return 'live';
+        if (now < start) return 'upcoming';
+        return 'ended';
+    }
+    function getStatusLabel(status) {
+        if (status === 'live') return '演出中';
+        if (status === 'upcoming') return '即将演出';
+        return '已结束';
+    }
+
+    // ========== 去重：同城市同场馆同日期去重 ==========
+    function deduplicatePerformances(perfs) {
+        var seen = {};
+        return perfs.filter(function(p) {
+            var key = (p.city || '') + '|' + (p.address || p.venue || '') + '|' + (p.startDate || '') + '|' + (p.name || '');
+            if (seen[key]) return false;
+            seen[key] = true;
+            return true;
+        });
+    }
+
+    // ========== 构建演出详情数据JSON ==========
+    function buildPerfDataJSON(p) {
+        return JSON.stringify({
+            name: p.name, city: p.city, startDate: p.startDate, endDate: p.endDate,
+            genre: p.genre, actors: p.actors || '', venue: p.address || p.venue || '',
+            lng: p.lng, lat: p.lat, troupe: p.troupe || '',
+            duration: p.duration || '', description: p.description || '',
+            price: p.price || '', transport: p.transport || ''
+        }).replace(/"/g, '&quot;').replace(/'/g, "\\'");
+    }
+
+    // ========== 底部演出列表（V2重构版） ==========
+    var currentTimeTab = 'today';
+    var currentView = 'group';
+    var calYear, calMonth;
+
     function updatePerfList(active) {
+        // 去重
+        var deduped = deduplicatePerformances(active);
+
+        // 计算各演出状态
+        deduped.forEach(function(p) {
+            p._status = getPerfStatus(p);
+        });
+
+        // 按日期升序排序
+        deduped.sort(function(a, b) { return a.startDate.localeCompare(b.startDate); });
+
+        // 时间筛选
+        var now = new Date();
+        var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        var weekEnd = new Date(today.getTime() + 7 * 86400000);
+        var monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+        var filtered;
+        switch (currentTimeTab) {
+            case 'today':
+                filtered = deduped.filter(function(p) {
+                    var s = new Date(p.startDate + 'T00:00:00');
+                    var e = new Date(p.endDate + 'T23:59:59');
+                    return s <= today && today <= e;
+                });
+                break;
+            case 'week':
+                filtered = deduped.filter(function(p) {
+                    var s = new Date(p.startDate + 'T00:00:00');
+                    return s >= today && s <= weekEnd;
+                });
+                break;
+            case 'month':
+                filtered = deduped.filter(function(p) {
+                    var s = new Date(p.startDate + 'T00:00:00');
+                    return s >= today && s <= monthEnd;
+                });
+                break;
+            default: // all
+                filtered = deduped;
+        }
+
+        // 渲染各视图
+        renderGroupView(filtered);
+        renderTableView(filtered);
+        renderCalendarView(deduped);
+        renderStats(filtered, deduped);
+
+        // 设置默认显示视图
+        switchView(currentView);
+    }
+
+    // ===== 分组视图（按城市分组，每组内按日期升序） =====
+    function renderGroupView(perfs) {
+        var container = document.getElementById('pbtViewGroupContent');
+        if (!container) return;
+
+        // 按城市分组
+        var cityGroups = {};
+        perfs.forEach(function(p) {
+            var city = p.city || '未知城市';
+            if (!cityGroups[city]) cityGroups[city] = [];
+            cityGroups[city].push(p);
+        });
+
+        // 城市名排序
+        var sortedCities = Object.keys(cityGroups).sort();
+
+        var html = '';
+        sortedCities.forEach(function(city) {
+            var items = cityGroups[city];
+            // 组内按日期升序
+            items.sort(function(a, b) { return a.startDate.localeCompare(b.startDate); });
+
+            html += '<div class="pbt-city-group">' +
+                '<div class="pbt-city-header" onclick="var b=this.nextElementSibling;this.classList.toggle(\'collapsed\');b.classList.toggle(\'collapsed\')">' +
+                '<span class="pbt-city-arrow">▼</span>' +
+                '<span class="pbt-city-name">' + escapeHtml(city) + '</span>' +
+                '<span class="pbt-city-count">' + items.length + '场</span>' +
+                '</div>' +
+                '<div class="pbt-city-body">';
+
+            items.forEach(function(p) {
+                var genreIcon = getGenreIcon(p.genre);
+                var statusLabel = getStatusLabel(p._status);
+                var statusClass = p._status;
+                var venueName = p.address || p.venue || '';
+                var actorsStr = p.actors || '';
+                var durationStr = p.duration || '';
+                var transportStr = p.transport || '';
+                var perfData = buildPerfDataJSON(p);
+
+                html += '<div class="pbt-item" onclick="window._openPerfDetail(\'' + perfData + '\')">' +
+                    '<div class="pbt-item-genre-icon" title="' + escapeHtml(p.genre) + '">' + genreIcon + '</div>' +
+                    '<div class="pbt-item-info">' +
+                    '<div class="pbt-item-name">' + escapeHtml(p.name) + '</div>' +
+                    '<div class="pbt-item-meta">' +
+                    '<span class="pbt-item-date">' + p.startDate + ' ~ ' + p.endDate + '</span>' +
+                    '<span class="pbt-item-venue">' + escapeHtml(venueName) + '</span>';
+                if (durationStr) {
+                    html += '<span class="pbt-item-duration">⏱ ' + escapeHtml(durationStr) + '</span>';
+                }
+                if (actorsStr) {
+                    html += '<span class="pbt-item-actors">👤 ' + escapeHtml(actorsStr) + '</span>';
+                }
+                if (transportStr) {
+                    html += '<span class="pbt-item-address">🚇 ' + escapeHtml(transportStr) + '</span>';
+                }
+                html += '</div></div>' +
+                    '<div class="pbt-item-status">' +
+                    '<span class="pbt-status-badge ' + statusClass + '">' + statusLabel + '</span>' +
+                    '</div>' +
+                    '<button class="pbt-buy-btn" onclick="event.stopPropagation();window.open(\'https://www.baidu.com/s?wd=' + encodeURIComponent(p.name + ' ' + venueName + ' 购票') + '\', \'_blank\')">购票</button>' +
+                    '</div>';
+            });
+
+            html += '</div></div>';
+        });
+
+        if (sortedCities.length === 0) {
+            html = '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px;">暂无符合条件的演出</div>';
+        }
+
+        container.innerHTML = html;
+    }
+
+    // ===== 表格视图（电子表格） =====
+    function renderTableView(perfs) {
+        var container = document.getElementById('pbtViewTableContent');
+        if (!container) return;
+
+        if (perfs.length === 0) {
+            container.innerHTML = '<div class="pbt-table-wrapper"><table class="pbt-table"><tr><td class="pbt-td-empty" colspan="9">暂无数据</td></tr></table></div>';
+            return;
+        }
+
+        var html = '<div class="pbt-table-wrapper"><table class="pbt-table">' +
+            '<thead><tr>' +
+            '<th>剧目</th><th>剧种</th><th>城市</th><th>场馆</th>' +
+            '<th>开始日期</th><th>结束日期</th><th>状态</th><th>票价</th><th>购票</th>' +
+            '</tr></thead><tbody>';
+
+        perfs.forEach(function(p) {
+            var statusLabel = getStatusLabel(p._status);
+            var statusClass = p._status;
+            var priceStr = p.price || '';
+            var perfData = buildPerfDataJSON(p);
+            var venueName = p.address || p.venue || '';
+
+            html += '<tr onclick="window._openPerfDetail(\'' + perfData + '\')" style="cursor:pointer">' +
+                '<td class="pbt-td-name" title="' + escapeHtml(p.name) + '">' + escapeHtml(p.name) + '</td>' +
+                '<td>' + escapeHtml(p.genre || '') + '</td>' +
+                '<td>' + escapeHtml(p.city || '') + '</td>' +
+                '<td title="' + escapeHtml(venueName) + '">' + escapeHtml(venueName) + '</td>' +
+                '<td>' + (p.startDate || '') + '</td>' +
+                '<td>' + (p.endDate || '') + '</td>' +
+                '<td class="pbt-td-status"><span class="pbt-status-badge ' + statusClass + '">' + statusLabel + '</span></td>' +
+                '<td>' + (priceStr ? escapeHtml(priceStr) : '待定') + '</td>' +
+                '<td class="pbt-td-actions"><button class="pbt-td-buy" onclick="event.stopPropagation();window.open(\'https://www.baidu.com/s?wd=' + encodeURIComponent(p.name + ' ' + venueName + ' 购票') + '\', \'_blank\')">购票</button></td>' +
+                '</tr>';
+        });
+
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+    }
+
+    // ===== 日历视图 =====
+    function renderCalendarView(allPerfs) {
+        var container = document.getElementById('pbtViewCalContent');
+        if (!container) return;
+
+        var now = new Date();
+        if (!calYear) { calYear = now.getFullYear(); calMonth = now.getMonth(); }
+
+        var firstDay = new Date(calYear, calMonth, 1);
+        var lastDay = new Date(calYear, calMonth + 1, 0);
+        var startDayOfWeek = firstDay.getDay(); // 0=周日
+        var daysInMonth = lastDay.getDate();
+
+        // 构建日期->演出映射
+        var datePerfs = {};
+        allPerfs.forEach(function(p) {
+            var start = new Date(p.startDate + 'T00:00:00');
+            var end = new Date(p.endDate + 'T23:59:59');
+            for (var d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                var key = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+                if (!datePerfs[key]) datePerfs[key] = [];
+                if (datePerfs[key].length < 3) { // 每天最多显示3个
+                    datePerfs[key].push(p);
+                }
+            }
+        });
+
+        var today = new Date();
+        var todayKey = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
+
+        var weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+        var html = '<div class="pbt-cal-nav">' +
+            '<button class="pbt-cal-nav-btn" onclick="window._calPrevMonth()">◀</button>' +
+            '<span class="pbt-cal-nav-title">' + calYear + '年 ' + (calMonth + 1) + '月</span>' +
+            '<button class="pbt-cal-nav-btn" onclick="window._calNextMonth()">▶</button>' +
+            '</div>' +
+            '<div class="pbt-cal-grid">';
+
+        // 星期头
+        for (var w = 0; w < 7; w++) {
+            html += '<div class="pbt-cal-weekday">' + weekdays[w] + '</div>';
+        }
+
+        // 上月填充
+        for (var i = 0; i < startDayOfWeek; i++) {
+            html += '<div class="pbt-cal-day other-month"></div>';
+        }
+
+        // 本月日期
+        for (var d = 1; d <= daysInMonth; d++) {
+            var dateKey = calYear + '-' + (calMonth + 1) + '-' + d;
+            var isToday = dateKey === todayKey;
+            var events = datePerfs[dateKey] || [];
+
+            html += '<div class="pbt-cal-day' + (isToday ? ' today' : '') + '">' +
+                '<div class="pbt-cal-day-num">' + d + '</div>';
+
+            for (var e = 0; e < events.length; e++) {
+                var evt = events[e];
+                var evtStatus = evt._status || getPerfStatus(evt);
+                var perfData = buildPerfDataJSON(evt);
+                html += '<div class="pbt-cal-event ' + evtStatus + '" onclick="event.stopPropagation();window._openPerfDetail(\'' + perfData + '\')" title="' + escapeHtml(evt.name) + '">' +
+                    escapeHtml(evt.name.substring(0, 6)) + (evt.name.length > 6 ? '…' : '') +
+                    '</div>';
+            }
+
+            html += '</div>';
+        }
+
+        html += '</div>';
+        container.innerHTML = html;
+    }
+
+    window._calPrevMonth = function() {
+        calMonth--;
+        if (calMonth < 0) { calMonth = 11; calYear--; }
+        updatePerfList(getActivePerformances());
+    };
+    window._calNextMonth = function() {
+        calMonth++;
+        if (calMonth > 11) { calMonth = 0; calYear++; }
+        updatePerfList(getActivePerformances());
+    };
+
+    // ===== 底部统计条 =====
+    function renderStats(filtered, allPerfs) {
+        var container = document.getElementById('perfBarV2Stats');
+        if (!container) return;
+
+        var liveCount = filtered.filter(function(p) { return p._status === 'live'; }).length;
+        var upcomingCount = filtered.filter(function(p) { return p._status === 'upcoming'; }).length;
+        var endedCount = filtered.filter(function(p) { return p._status === 'ended'; }).length;
+        var cityCount = new Set(filtered.map(function(p) { return p.city; })).size;
+        var genreCount = new Set(filtered.map(function(p) { return p.genre; })).size;
+
+        container.innerHTML =
+            '<span class="pbt-stat-item">共 <span class="pbt-stat-val">' + filtered.length + '</span> 场演出</span>' +
+            '<span class="pbt-stat-item"><span class="pbt-stat-dot" style="background:var(--live-red)"></span>演出中 <span class="pbt-stat-val">' + liveCount + '</span></span>' +
+            '<span class="pbt-stat-item"><span class="pbt-stat-dot" style="background:var(--upcoming-teal)"></span>即将演出 <span class="pbt-stat-val">' + upcomingCount + '</span></span>' +
+            '<span class="pbt-stat-item"><span class="pbt-stat-dot" style="background:var(--ended-brown)"></span>已结束 <span class="pbt-stat-val">' + endedCount + '</span></span>' +
+            '<span class="pbt-stat-item">城市 <span class="pbt-stat-val">' + cityCount + '</span></span>' +
+            '<span class="pbt-stat-item">剧种 <span class="pbt-stat-val">' + genreCount + '</span></span>';
+    }
+
+    // ===== 视图切换 =====
+    function switchView(view) {
+        currentView = view;
+        var groupView = document.getElementById('pbtViewGroupContent');
+        var tableView = document.getElementById('pbtViewTableContent');
+        var calView = document.getElementById('pbtViewCalContent');
+        var btnGroup = document.getElementById('pbtViewGroup');
+        var btnTable = document.getElementById('pbtViewTable');
+        var btnCal = document.getElementById('pbtViewCal');
+
+        if (groupView) groupView.style.display = view === 'group' ? '' : 'none';
+        if (tableView) tableView.style.display = view === 'table' ? '' : 'none';
+        if (calView) calView.style.display = view === 'calendar' ? '' : 'none';
+        if (btnGroup) { btnGroup.classList.toggle('active', view === 'group'); }
+        if (btnTable) { btnTable.classList.toggle('active', view === 'table'); }
+        if (btnCal) { btnCal.classList.toggle('active', view === 'calendar'); }
+    }
+
+    // ===== 时间筛选器绑定 =====
+    function bindPerfBarV2() {
+        var tabs = document.getElementById('perfTimeTabs');
+        if (tabs) {
+            tabs.addEventListener('click', function(e) {
+                var tab = e.target.closest('.pbt-tab');
+                if (!tab) return;
+                var allTabs = tabs.querySelectorAll('.pbt-tab');
+                allTabs.forEach(function(t) { t.classList.remove('active'); });
+                tab.classList.add('active');
+                currentTimeTab = tab.getAttribute('data-tab') || 'today';
+                updatePerfList(getActivePerformances());
+            });
+        }
+
+        var btnGroup = document.getElementById('pbtViewGroup');
+        var btnTable = document.getElementById('pbtViewTable');
+        var btnCal = document.getElementById('pbtViewCal');
+        if (btnGroup) btnGroup.addEventListener('click', function() { switchView('group'); });
+        if (btnTable) btnTable.addEventListener('click', function() { switchView('table'); });
+        if (btnCal) btnCal.addEventListener('click', function() { switchView('calendar'); });
+    }
+
+    // ========== 旧版底部演出列表（保留兼容，但不再使用） ==========
+    function updatePerfListOld(active) {
         var list = document.getElementById('perfList');
+        if (!list) return;
         var now = new Date();
         var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         var tomorrow = new Date(today.getTime() + 86400000);
         var weekEnd = new Date(today.getTime() + 7 * 86400000);
         var monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
-        // 按坐标分组
         var groups = groupPerformancesByVenue(active);
 
-        // 日期分组定义
         var dateGroups = [
             { key: 'today', label: '📌 今天', filter: function(p) { var s = new Date(p.startDate + 'T00:00:00'); return s <= today && today <= new Date(p.endDate + 'T23:59:59'); }, collapsed: false },
             { key: 'tomorrow', label: '📅 明天', filter: function(p) { var s = new Date(p.startDate + 'T00:00:00'); return s.getTime() === tomorrow.getTime(); }, collapsed: false },
@@ -445,7 +815,6 @@ chart = echarts.init(dom);
         var html = '';
 
         dateGroups.forEach(function(dg) {
-            // 筛选该组的 groups
             var groupItems = [];
             groups.forEach(function(g) {
                 var hasMatch = g.performances.some(function(p) { return dg.filter(p); });
@@ -526,7 +895,7 @@ chart = echarts.init(dom);
     // 打开演出详情浮层
     window._openPerfDetail = function(jsonStr) {
         var data;
-        try { data = JSON.parse(jsonStr); } catch(e) { return; }
+        try { data = JSON.parse(jsonStr.replace(/&quot;/g, '"')); } catch(e) { return; }
 
         var overlay = document.getElementById('perfDetailOverlay');
         if (!overlay) return;
@@ -584,6 +953,30 @@ chart = echarts.init(dom);
                 '<svg class="pd-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' +
                 '<span class="pd-info-label">演员</span>' +
                 '<span class="pd-info-value">' + escapeHtml(data.actors) + '</span>' +
+                '</div>';
+        }
+        // 时长
+        if (data.duration) {
+            bodyHtml += '<div class="pd-info-row">' +
+                '<svg class="pd-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' +
+                '<span class="pd-info-label">时长</span>' +
+                '<span class="pd-info-value">' + escapeHtml(data.duration) + '</span>' +
+                '</div>';
+        }
+        // 票价
+        if (data.price) {
+            bodyHtml += '<div class="pd-info-row">' +
+                '<svg class="pd-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>' +
+                '<span class="pd-info-label">票价</span>' +
+                '<span class="pd-info-value">' + escapeHtml(data.price) + '</span>' +
+                '</div>';
+        }
+        // 交通
+        if (data.transport) {
+            bodyHtml += '<div class="pd-info-row">' +
+                '<svg class="pd-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>' +
+                '<span class="pd-info-label">交通</span>' +
+                '<span class="pd-info-value">' + escapeHtml(data.transport) + '</span>' +
                 '</div>';
         }
         bodyHtml += '<hr class="pd-divider">';
@@ -976,6 +1369,8 @@ chart = echarts.init(dom);
     }
 
     main();
+    // 绑定 V2 底部演出栏事件
+    bindPerfBarV2();
 
     // ========== 日志面板 ==========
     (function initLogPanel() {
