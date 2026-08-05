@@ -39,22 +39,67 @@
         <!-- 左侧面板 -->
         <aside class="side-panel" id="sidePanel">
             <div class="panel-close-btn" id="panelCloseBtn" title="关闭面板">✕</div>
+
+            <!-- 关键词搜索 -->
             <div class="panel-card">
                 <div class="search-box">
-                    <input type="text" id="searchInput" class="search-input" placeholder="🔍 搜索演出名称...">
+                    <input type="text" id="searchInput" class="search-input" placeholder="🔍 搜索剧目、剧团...">
                     <button class="search-clear" id="searchClear" style="display:none" title="清除">✕</button>
                 </div>
             </div>
+
+            <!-- 多维筛选 -->
             <div class="panel-card">
-                <h3><span class="panel-icon">◆</span> 剧种筛选 <span class="panel-badge" id="genreCount"></span></h3>
+                <h3><span class="panel-icon">◆</span> 多维筛选</h3>
+                <div class="filter-row">
+                    <select id="filterCity" class="filter-select">
+                        <option value="">🏙️ 全部城市</option>
+                    </select>
+                </div>
+                <div class="filter-row">
+                    <select id="filterVenue" class="filter-select">
+                        <option value="">🏛️ 全部场馆</option>
+                    </select>
+                </div>
+                <div class="filter-row filter-date-row">
+                    <input type="date" id="filterDateFrom" class="filter-date" placeholder="开始日期">
+                    <span class="filter-date-sep">~</span>
+                    <input type="date" id="filterDateTo" class="filter-date" placeholder="结束日期">
+                </div>
+                <button class="filter-reset-btn" id="filterResetBtn">重置筛选</button>
+                <div class="filter-active-tags" id="filterActiveTags"></div>
+            </div>
+
+            <!-- 剧种筛选 -->
+            <div class="panel-card">
+                <h3><span class="panel-icon">◇</span> 剧种筛选 <span class="panel-badge" id="genreCount"></span></h3>
                 <div class="genre-tags" id="genreTags"></div>
             </div>
+
+            <!-- 图例说明 -->
             <div class="panel-card">
-                <h3><span class="panel-icon">◇</span> 图例说明</h3>
+                <h3><span class="panel-icon">▣</span> 图例说明</h3>
                 <div class="legend-item"><span class="legend-dot red"></span><div><strong>正在演出</strong><small>进行中</small></div></div>
                 <div class="legend-item"><span class="legend-dot yellow"></span><div><strong>即将演出</strong><small>已排期</small></div></div>
                 <div class="legend-item"><span class="legend-dot black"></span><div><strong>已结束</strong><small>3天后消失</small></div></div>
             </div>
+
+            <!-- 演出状态 -->
+            <div class="panel-card">
+                <h3><span class="panel-icon">◎</span> 演出状态</h3>
+                <label class="filter-tag active"><input type="checkbox" checked data-filter="all"> 全部</label>
+                <label class="filter-tag active"><input type="checkbox" checked data-filter="live"> 演出中</label>
+                <label class="filter-tag active"><input type="checkbox" checked data-filter="upcoming"> 即将演出</label>
+                <label class="filter-tag active"><input type="checkbox" checked data-filter="ended"> 已结束</label>
+            </div>
+
+            <!-- 数据来源 -->
+            <div class="panel-card">
+                <h3><span class="panel-icon">▪</span> 数据来源</h3>
+                <label class="filter-tag source-tag"><input type="checkbox" data-filter="manual"> 👤 个人添加</label>
+            </div>
+
+            <!-- 演出统计 + 图表看板 -->
             <div class="panel-card">
                 <h3><span class="panel-icon">▤</span> 演出统计</h3>
                 <div class="stat-grid">
@@ -63,17 +108,20 @@
                     <div class="stat-item"><span class="stat-num gray" id="sEnded">0</span><span class="stat-label">已结束</span></div>
                     <div class="stat-item"><span class="stat-num" id="sTotal">0</span><span class="stat-label">总计</span></div>
                 </div>
+                <div class="stat-chart-row">
+                    <div class="stat-mini-chart" id="statCityChart"></div>
+                    <div class="stat-mini-chart" id="statGenreChart"></div>
+                </div>
             </div>
-            <div class="panel-card">
-                <h3><span class="panel-icon">◎</span> 演出状态</h3>
-                <label class="filter-tag active"><input type="checkbox" checked data-filter="all"> 全部</label>
-                <label class="filter-tag active"><input type="checkbox" checked data-filter="live"> 演出中</label>
-                <label class="filter-tag active"><input type="checkbox" checked data-filter="upcoming"> 即将演出</label>
-                <label class="filter-tag active"><input type="checkbox" checked data-filter="ended"> 已结束</label>
-            </div>
-            <div class="panel-card">
-                <h3><span class="panel-icon">▪</span> 数据来源</h3>
-                <label class="filter-tag source-tag"><input type="checkbox" data-filter="manual"> 👤 个人添加</label>
+
+            <!-- 用户贡献 -->
+            <div class="panel-card panel-card-contribute">
+                <h3><span class="panel-icon">✎</span> 参与贡献</h3>
+                <p class="contribute-desc">数据来源：网络爬取 + 用户贡献</p>
+                <div class="contribute-btns">
+                    <a href="admin.html" class="contribute-btn contribute-btn-add">＋ 添加演出</a>
+                    <button class="contribute-btn contribute-btn-report" id="contributeReportBtn">⚠ 报错/纠错</button>
+                </div>
             </div>
         </aside>
 
@@ -187,6 +235,39 @@
                     搜索演出
                 </button>
                 <button class="pd-btn pd-btn-close" id="pdBtnClose">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 报错/纠错浮层 -->
+    <div class="report-overlay" id="reportOverlay">
+        <div class="report-card">
+            <div class="report-header">
+                <h3>⚠ 报错 / 纠错</h3>
+                <button class="report-close-btn" id="reportCloseBtn">✕</button>
+            </div>
+            <div class="report-body">
+                <div class="report-field">
+                    <label>演出名称（选填）</label>
+                    <input type="text" id="reportName" class="report-input" placeholder="例如：京剧《贵妃醉酒》">
+                </div>
+                <div class="report-field">
+                    <label>问题类型</label>
+                    <select id="reportType" class="report-select">
+                        <option value="wrong_info">信息有误</option>
+                        <option value="outdated">演出已过期/取消</option>
+                        <option value="duplicate">重复条目</option>
+                        <option value="missing">缺少演出信息</option>
+                        <option value="other">其他问题</option>
+                    </select>
+                </div>
+                <div class="report-field">
+                    <label>问题描述 <span class="required">*</span></label>
+                    <textarea id="reportDesc" class="report-textarea" rows="4" placeholder="请详细描述问题..." maxlength="500"></textarea>
+                    <span class="report-count" id="reportDescCount">0/500</span>
+                </div>
+                <button class="report-submit-btn" id="reportSubmitBtn">提交反馈</button>
+                <p class="report-note">感谢您的反馈，我们会尽快核实处理。</p>
             </div>
         </div>
     </div>

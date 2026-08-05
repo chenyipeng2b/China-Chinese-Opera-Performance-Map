@@ -2866,6 +2866,327 @@ input, textarea, [contenteditable] {
   justify-content: center;
   transition: all 0.2s;
 }
+
+/* ============================================
+   多维筛选器样式
+   ============================================ */
+.filter-row { margin-bottom: 8px; }
+.filter-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid rgba(184,148,62,0.35);
+  border-radius: 6px;
+  background: rgba(184,148,62,0.06);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23B8943E' d='M5 7L1 3h8z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+.filter-select:focus { border-color: var(--gold); }
+.filter-date-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.filter-date {
+  flex: 1;
+  padding: 7px 8px;
+  border: 1px solid rgba(184,148,62,0.35);
+  border-radius: 6px;
+  background: rgba(184,148,62,0.06);
+  color: var(--text-primary);
+  font-size: 11px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+  min-width: 0;
+}
+.filter-date:focus { border-color: var(--gold); }
+.filter-date-sep {
+  color: var(--text-muted);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.filter-reset-btn {
+  width: 100%;
+  padding: 6px 0;
+  border: 1px solid rgba(184,148,62,0.25);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.filter-reset-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.filter-active-tags {
+  display: none;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+.filter-active-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(184,148,62,0.15);
+  border: 1px solid rgba(184,148,62,0.3);
+  border-radius: 12px;
+  font-size: 10px;
+  color: var(--gold-dark);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.filter-active-tag:hover {
+  background: rgba(196,30,58,0.1);
+  border-color: rgba(196,30,58,0.3);
+  color: var(--live-red);
+}
+[data-theme="dark"] .filter-select,
+[data-theme="dark"] .filter-date {
+  background: rgba(22,33,62,0.6);
+  border-color: rgba(201,169,110,0.3);
+  color: #e0d8c8;
+}
+[data-theme="dark"] .filter-active-tag {
+  background: rgba(212,184,106,0.12);
+  border-color: rgba(212,184,106,0.25);
+  color: #D4B86A;
+}
+
+/* ============================================
+   统计图表看板
+   ============================================ */
+.stat-chart-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+.stat-mini-chart {
+  width: 100%;
+  height: 120px;
+  background: rgba(184,148,62,0.03);
+  border: 1px solid rgba(201,169,110,0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+[data-theme="dark"] .stat-mini-chart {
+  background: rgba(22,33,62,0.3);
+  border-color: rgba(201,169,110,0.15);
+}
+
+/* ============================================
+   用户贡献面板
+   ============================================ */
+.panel-card-contribute {
+  background: rgba(196,30,58,0.04) !important;
+  border-color: rgba(196,30,58,0.2) !important;
+}
+.contribute-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+.contribute-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.contribute-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s;
+  border: none;
+  letter-spacing: 0.5px;
+}
+.contribute-btn-add {
+  background: linear-gradient(135deg, #B8943E, #C9A96E);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(184,148,62,0.3);
+}
+.contribute-btn-add:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(184,148,62,0.45);
+}
+.contribute-btn-report {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid rgba(201,169,110,0.25);
+}
+.contribute-btn-report:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(201,169,110,0.06);
+}
+[data-theme="dark"] .panel-card-contribute {
+  background: rgba(217,64,78,0.06) !important;
+  border-color: rgba(217,64,78,0.25) !important;
+}
+
+/* ============================================
+   报错/纠错浮层
+   ============================================ */
+.report-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 500;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+.report-overlay.visible {
+  display: flex;
+}
+.report-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 12px 48px rgba(139,115,85,0.2);
+  animation: pdSlideUp 0.25s ease;
+  overflow: hidden;
+}
+.report-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid rgba(201,169,110,0.12);
+}
+.report-header h3 {
+  font-size: 16px;
+  color: var(--text-primary);
+  margin: 0;
+}
+.report-close-btn {
+  width: 30px; height: 30px;
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.report-close-btn:hover { border-color: var(--gold); color: var(--gold); }
+.report-body {
+  padding: 16px 18px 20px;
+}
+.report-field {
+  margin-bottom: 14px;
+}
+.report-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+.report-field .required { color: var(--live-red); }
+.report-input, .report-select, .report-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(184,148,62,0.3);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+.report-input:focus, .report-select:focus, .report-textarea:focus {
+  border-color: var(--gold);
+}
+.report-textarea { resize: vertical; min-height: 70px; }
+.report-count {
+  display: block;
+  text-align: right;
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.report-submit-btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #B8943E, #C9A96E);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(184,148,62,0.3);
+}
+.report-submit-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(184,148,62,0.45);
+}
+.report-note {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 10px;
+}
+[data-theme="dark"] .report-card {
+  background: rgba(22,28,48,0.97);
+  border-color: rgba(201,169,110,0.2);
+}
+[data-theme="dark"] .report-input,
+[data-theme="dark"] .report-select,
+[data-theme="dark"] .report-textarea {
+  background: rgba(22,33,62,0.7);
+  border-color: rgba(201,169,110,0.25);
+  color: #e0d8c8;
+}
+
+/* ============================================
+   详情浮层增强
+   ============================================ */
+.pd-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  padding: 4px 0;
+}
+/* 暗色 */
+[data-theme="dark"] .pd-desc { color: #b0a890; }
 .pbt-cal-nav-btn:hover { border-color: var(--gold); color: var(--gold); }
 .pbt-cal-nav-title {
   font-size: 14px;

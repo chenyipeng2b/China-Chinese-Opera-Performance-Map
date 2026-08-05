@@ -98,6 +98,12 @@
         return { text: '已结束', cls: 'ended' };
     }
 
+    // ========== 增强筛选状态 ==========
+    var filterCity = '';
+    var filterVenue = '';
+    var filterDateFrom = '';
+    var filterDateTo = '';
+
     // ========== 获取活跃演出 ==========
     function getActivePerformances() {
         var keyword = (searchKeyword || '').trim().toLowerCase();
@@ -109,8 +115,23 @@
                 if (filters.manual && p.source !== 'manual') return false;
                 // 剧种筛选
                 if (activeGenres.length > 0 && activeGenres.indexOf(p.genre) === -1) return false;
-                // 搜索关键词
-                if (keyword && (p.name || '').toLowerCase().indexOf(keyword) === -1) return false;
+                // 关键词搜索（支持剧目名、剧团名）
+                if (keyword) {
+                    var nameMatch = (p.name || '').toLowerCase().indexOf(keyword) !== -1;
+                    var troupeMatch = (p.troupe || '').toLowerCase().indexOf(keyword) !== -1;
+                    var genreMatch = (p.genre || '').toLowerCase().indexOf(keyword) !== -1;
+                    if (!nameMatch && !troupeMatch && !genreMatch) return false;
+                }
+                // 城市筛选
+                if (filterCity && (p.city || '') !== filterCity) return false;
+                // 场馆筛选
+                if (filterVenue) {
+                    var venue = p.address || p.venue || '';
+                    if (venue !== filterVenue) return false;
+                }
+                // 日期筛选
+                if (filterDateFrom && p.startDate < filterDateFrom) return false;
+                if (filterDateTo && p.endDate > filterDateTo) return false;
                 return true;
             })
             .map(function(p) {
@@ -818,6 +839,145 @@ chart = echarts.init(dom, null, { devicePixelRatio: window.devicePixelRatio || 1
         if (btnCal) btnCal.addEventListener('click', function() { switchView('calendar'); });
     }
 
+    // ========== 统计图表看板 ==========
+    function renderStatCharts() {
+        var cityChartDom = document.getElementById('statCityChart');
+        var genreChartDom = document.getElementById('statGenreChart');
+        if (!cityChartDom || !genreChartDom) return;
+
+        var isDark = window.ThemeManager && window.ThemeManager.isDark ? window.ThemeManager.isDark() : false;
+        var textColor = isDark ? '#b0a890' : '#6B5E4A';
+
+        // 城市分布
+        var cityCount = {};
+        allPerformances.forEach(function(p) { if (p.city) cityCount[p.city] = (cityCount[p.city] || 0) + 1; });
+        var topCities = Object.entries(cityCount).sort(function(a, b) { return b[1] - a[1]; }).slice(0, 8);
+        var cityNames = topCities.map(function(c) { return c[0].length > 4 ? c[0].substring(0, 4) + '…' : c[0]; });
+        var cityValues = topCities.map(function(c) { return c[1]; });
+
+        var cityChart = echarts.init(cityChartDom);
+        cityChart.setOption({
+            grid: { top: 8, right: 8, bottom: 4, left: 8, containLabel: true },
+            xAxis: { type: 'value', show: false, min: 0 },
+            yAxis: { type: 'category', data: cityNames.reverse(), axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: textColor, fontSize: 9 } },
+            series: [{
+                type: 'bar', data: cityValues.reverse(),
+                itemStyle: {
+                    borderRadius: [0, 3, 3, 0],
+                    color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                        { offset: 0, color: '#B8943E' }, { offset: 1, color: '#C41E3A' }
+                    ])
+                },
+                barMaxWidth: 14,
+                label: { show: true, position: 'right', color: textColor, fontSize: 9 }
+            }]
+        });
+
+        // 剧种分布
+        var genreCount = {};
+        allPerformances.forEach(function(p) { if (p.genre) genreCount[p.genre] = (genreCount[p.genre] || 0) + 1; });
+        var topGenres = Object.entries(genreCount).sort(function(a, b) { return b[1] - a[1]; }).slice(0, 8);
+        var genreData = topGenres.map(function(g, i) {
+            var colors = ['#C41E3A', '#D4A843', '#2B5F8A', '#4A7C59', '#6B3FA0', '#E53935', '#00ACC1', '#8D6E63'];
+            return { name: g[0], value: g[1], itemStyle: { color: colors[i % colors.length] } };
+        });
+
+        var genreChart = echarts.init(genreChartDom);
+        genreChart.setOption({
+            series: [{
+                type: 'pie',
+                radius: ['45%', '75%'],
+                center: ['50%', '50%'],
+                data: genreData,
+                label: { show: true, position: 'outside', color: textColor, fontSize: 9, formatter: '{b}' },
+                emphasis: { scaleSize: 8 }
+            }]
+        });
+
+        // 监听主题切换
+        window.addEventListener('themechange', function() {
+            var d = window.ThemeManager && window.ThemeManager.isDark ? window.ThemeManager.isDark() : false;
+            var tc = d ? '#b0a890' : '#6B5E4A';
+            cityChart.setOption({ yAxis: { axisLabel: { color: tc } }, series: [{ label: { color: tc } }] });
+            genreChart.setOption({ series: [{ label: { color: tc } }] });
+        });
+
+        // 响应窗口变化
+        window.addEventListener('resize', function() {
+            try { cityChart.resize(); genreChart.resize(); } catch(e) {}
+        });
+    }
+
+    // ========== 报错/纠错功能 ==========
+    function bindReportFeature() {
+        var reportBtn = document.getElementById('contributeReportBtn');
+        var reportOverlay = document.getElementById('reportOverlay');
+        var reportCloseBtn = document.getElementById('reportCloseBtn');
+        var reportSubmitBtn = document.getElementById('reportSubmitBtn');
+        var reportDesc = document.getElementById('reportDesc');
+        var reportDescCount = document.getElementById('reportDescCount');
+
+        if (!reportBtn || !reportOverlay) return;
+
+        reportBtn.addEventListener('click', function() {
+            reportOverlay.classList.add('visible');
+            document.body.style.overflow = 'hidden';
+        });
+
+        if (reportCloseBtn) {
+            reportCloseBtn.addEventListener('click', function() {
+                reportOverlay.classList.remove('visible');
+                document.body.style.overflow = '';
+            });
+        }
+
+        reportOverlay.addEventListener('click', function(e) {
+            if (e.target === reportOverlay) {
+                reportOverlay.classList.remove('visible');
+                document.body.style.overflow = '';
+            }
+        });
+
+        if (reportDesc && reportDescCount) {
+            reportDesc.addEventListener('input', function() {
+                reportDescCount.textContent = (reportDesc.value.length || 0) + '/500';
+            });
+        }
+
+        if (reportSubmitBtn) {
+            reportSubmitBtn.addEventListener('click', function() {
+                var name = document.getElementById('reportName').value.trim();
+                var type = document.getElementById('reportType').value;
+                var desc = (reportDesc ? reportDesc.value : '').trim();
+
+                if (!desc) {
+                    alert('请填写问题描述');
+                    return;
+                }
+
+                // 存储到 localStorage
+                var reports = [];
+                try { reports = JSON.parse(localStorage.getItem('opera_reports') || '[]'); } catch(e) {}
+                reports.push({
+                    name: name || '未指定',
+                    type: type,
+                    desc: desc,
+                    time: new Date().toISOString()
+                });
+                if (reports.length > 100) reports = reports.slice(-100);
+                localStorage.setItem('opera_reports', JSON.stringify(reports));
+
+                alert('感谢您的反馈！我们会尽快核实处理。');
+                reportOverlay.classList.remove('visible');
+                document.body.style.overflow = '';
+                // 清空表单
+                document.getElementById('reportName').value = '';
+                document.getElementById('reportDesc').value = '';
+                if (reportDescCount) reportDescCount.textContent = '0/500';
+            });
+        }
+    }
+
     // ========== 旧版底部演出列表（保留兼容，但不再使用） ==========
     function updatePerfListOld(active) {
         var list = document.getElementById('perfList');
@@ -1005,12 +1165,18 @@ chart = echarts.init(dom, null, { devicePixelRatio: window.devicePixelRatio || 1
                 '<span class="pd-info-value">' + escapeHtml(data.transport) + '</span>' +
                 '</div>';
         }
+        // 剧团
+        if (data.troupe) {
+            bodyHtml += '<div class="pd-info-row">' +
+                '<svg class="pd-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' +
+                '<span class="pd-info-label">剧团</span>' +
+                '<span class="pd-info-value">' + escapeHtml(data.troupe) + '</span>' +
+                '</div>';
+        }
         bodyHtml += '<hr class="pd-divider">';
         // 演出简介
-        bodyHtml += '<div style="font-size:13px;color:var(--text-secondary);line-height:1.7;">' +
-            escapeHtml(data.name) + '，将于 ' + (data.startDate || '') + ' 至 ' + (data.endDate || '') + ' 在' +
-            escapeHtml(data.city || '') + (data.venue ? escapeHtml(data.venue) : '') + '上演。' +
-            '</div>';
+        var descText = data.description || (escapeHtml(data.name) + '，将于 ' + (data.startDate || '') + ' 至 ' + (data.endDate || '') + ' 在' + escapeHtml(data.city || '') + (data.venue ? escapeHtml(data.venue) : '') + '上演。');
+        bodyHtml += '<div class="pd-desc">' + escapeHtml(descText) + '</div>';
 
         document.getElementById('pdBody').innerHTML = bodyHtml;
 
@@ -1023,9 +1189,11 @@ chart = echarts.init(dom, null, { devicePixelRatio: window.devicePixelRatio || 1
 
         var searchBtn = document.getElementById('pdBtnSearch');
         searchBtn.onclick = function() {
-            var query = encodeURIComponent(data.name + (data.genre ? ' ' + data.genre : '') + ' 演出');
+            var query = encodeURIComponent(data.name + (data.genre ? ' ' + data.genre : '') + ' ' + (data.venue || '') + ' 购票');
             window.open('https://www.baidu.com/s?wd=' + query, '_blank');
         };
+        // 搜索按钮改为"购票"文案
+        if (searchBtn) searchBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>搜索购票';
 
         overlay.classList.add('visible');
         document.body.style.overflow = 'hidden';
@@ -1252,6 +1420,137 @@ chart = echarts.init(dom, null, { devicePixelRatio: window.devicePixelRatio || 1
         });
     }
 
+    // ========== 多维筛选器 ==========
+    function populateFilterOptions() {
+        // 城市下拉
+        var citySelect = document.getElementById('filterCity');
+        var venueSelect = document.getElementById('filterVenue');
+        if (!citySelect || !venueSelect) return;
+
+        var cities = {}, venues = {};
+        allPerformances.forEach(function(p) {
+            if (p.city) cities[p.city] = (cities[p.city] || 0) + 1;
+            var v = p.address || p.venue || '';
+            if (v) venues[v] = (venues[v] || 0) + 1;
+        });
+
+        // 城市选项
+        var cityOpts = '<option value="">🏙️ 全部城市</option>';
+        Object.keys(cities).sort().forEach(function(c) {
+            cityOpts += '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + ' (' + cities[c] + ')</option>';
+        });
+        citySelect.innerHTML = cityOpts;
+        citySelect.value = filterCity;
+
+        // 场馆选项
+        var venueOpts = '<option value="">🏛️ 全部场馆</option>';
+        Object.keys(venues).sort().forEach(function(v) {
+            venueOpts += '<option value="' + escapeHtml(v) + '">' + escapeHtml(v) + ' (' + venues[v] + ')</option>';
+        });
+        venueSelect.innerHTML = venueOpts;
+        venueSelect.value = filterVenue;
+    }
+
+    // 城市筛选
+    var citySelect = document.getElementById('filterCity');
+    if (citySelect) {
+        citySelect.addEventListener('change', function() {
+            filterCity = this.value;
+            // 联动场馆筛选
+            var venueSelect = document.getElementById('filterVenue');
+            if (venueSelect && filterCity) {
+                var venueOpts = '<option value="">🏛️ 全部场馆</option>';
+                var venueMap = {};
+                allPerformances.forEach(function(p) {
+                    if (p.city === filterCity) {
+                        var v = p.address || p.venue || '';
+                        if (v) venueMap[v] = (venueMap[v] || 0) + 1;
+                    }
+                });
+                Object.keys(venueMap).sort().forEach(function(v) {
+                    venueOpts += '<option value="' + escapeHtml(v) + '">' + escapeHtml(v) + ' (' + venueMap[v] + ')</option>';
+                });
+                venueSelect.innerHTML = venueOpts;
+                venueSelect.value = filterVenue;
+            }
+            updateActiveTags();
+            updateMapData();
+        });
+    }
+
+    // 场馆筛选
+    var venueSelect = document.getElementById('filterVenue');
+    if (venueSelect) {
+        venueSelect.addEventListener('change', function() {
+            filterVenue = this.value;
+            updateActiveTags();
+            updateMapData();
+        });
+    }
+
+    // 日期筛选
+    var dateFrom = document.getElementById('filterDateFrom');
+    var dateTo = document.getElementById('filterDateTo');
+    if (dateFrom) {
+        dateFrom.addEventListener('change', function() {
+            filterDateFrom = this.value;
+            updateActiveTags();
+            updateMapData();
+        });
+    }
+    if (dateTo) {
+        dateTo.addEventListener('change', function() {
+            filterDateTo = this.value;
+            updateActiveTags();
+            updateMapData();
+        });
+    }
+
+    // 重置筛选
+    var resetBtn = document.getElementById('filterResetBtn');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', function() {
+            filterCity = '';
+            filterVenue = '';
+            filterDateFrom = '';
+            filterDateTo = '';
+            if (citySelect) citySelect.value = '';
+            if (venueSelect) { venueSelect.value = ''; populateFilterOptions(); }
+            if (dateFrom) dateFrom.value = '';
+            if (dateTo) dateTo.value = '';
+            updateActiveTags();
+            updateMapData();
+        });
+    }
+
+    // 活跃筛选标签展示
+    function updateActiveTags() {
+        var container = document.getElementById('filterActiveTags');
+        if (!container) return;
+        var tags = [];
+        if (filterCity) tags.push({ label: '城市: ' + filterCity, action: function() { filterCity = ''; if (citySelect) citySelect.value = ''; } });
+        if (filterVenue) tags.push({ label: '场馆: ' + filterVenue, action: function() { filterVenue = ''; if (venueSelect) venueSelect.value = ''; } });
+        if (filterDateFrom) tags.push({ label: '≥' + filterDateFrom, action: function() { filterDateFrom = ''; if (dateFrom) dateFrom.value = ''; } });
+        if (filterDateTo) tags.push({ label: '≤' + filterDateTo, action: function() { filterDateTo = ''; if (dateTo) dateTo.value = ''; } });
+
+        if (tags.length === 0) {
+            container.innerHTML = '';
+            container.style.display = 'none';
+            return;
+        }
+        container.style.display = 'flex';
+        var html = '';
+        tags.forEach(function(t) {
+            html += '<span class="filter-active-tag" onclick="(function(){var a=this;var fn=' + t.action.toString() + ';fn();window._updateMapAndTags();}).call(this)">' + escapeHtml(t.label) + ' ✕</span>';
+        });
+        container.innerHTML = html;
+    }
+    window._updateMapAndTags = function() {
+        updateActiveTags();
+        populateFilterOptions();
+        updateMapData();
+    };
+
     // ========== 剧种标签构建 ==========
     function buildGenreTags() {
         var container = document.getElementById('genreTags');
@@ -1410,9 +1709,15 @@ chart = echarts.init(dom, null, { devicePixelRatio: window.devicePixelRatio || 1
         console.log('[系统] 启动完成, 耗时:', totalElapsed + 'ms, 地图:', geoOk, '演出数:', allPerformances.length);
     }
 
-    main();
+    main().then(function() {
+        // 数据加载完成后初始化筛选器和图表
+        populateFilterOptions();
+        renderStatCharts();
+    });
     // 绑定 V2 底部演出栏事件
     bindPerfBarV2();
+    // 报错/纠错功能
+    bindReportFeature();
 
     // ========== 日志面板 ==========
     (function initLogPanel() {
