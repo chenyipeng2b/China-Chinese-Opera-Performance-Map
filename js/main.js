@@ -48,8 +48,6 @@ for (var i = 0; i < sources.length; i++) {
             allPerformances = await resp.json();
         } catch(e) {
             console.error('[数据] 演出数据加载失败:', e.message);
-        }
-            });
             allPerformances = [];
         }
     }
