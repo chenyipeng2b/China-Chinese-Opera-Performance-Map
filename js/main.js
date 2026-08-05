@@ -13,6 +13,13 @@
     var zoomHint = document.getElementById('zoomHint');
     var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
 
+    // ========== 演出详情浮层（提前定义，避免 onclick 找不到函数） ==========
+    window._closePerfDetail = function() {
+        var overlay = document.getElementById('perfDetailOverlay');
+        if (overlay) overlay.classList.remove('visible');
+        document.body.style.overflow = '';
+    };
+
     // ========== 加载 GeoJSON ==========
     async function loadGeoJson() {
         // 多源回退：本地优先，再尝试多个在线CDN
@@ -605,17 +612,19 @@ chart = echarts.init(dom);
         document.body.style.overflow = 'hidden';
     };
 
-    // 关闭演出详情浮层
-    window._closePerfDetail = function() {
+    // 绑定浮层关闭按钮事件
+    (function bindPerfDetailButtons() {
+        var closeBtn = document.getElementById('pdCloseBtn');
+        var closeBtn2 = document.getElementById('pdBtnClose');
         var overlay = document.getElementById('perfDetailOverlay');
-        if (overlay) overlay.classList.remove('visible');
-        document.body.style.overflow = '';
-    };
-
-    // 点击遮罩关闭
-    document.getElementById('perfDetailOverlay').addEventListener('click', function(e) {
-        if (e.target === this) window._closePerfDetail();
-    });
+        if (closeBtn) closeBtn.addEventListener('click', window._closePerfDetail);
+        if (closeBtn2) closeBtn2.addEventListener('click', window._closePerfDetail);
+        if (overlay) {
+            overlay.addEventListener('click', function(e) {
+                if (e.target === overlay) window._closePerfDetail();
+            });
+        }
+    })();
 
     // ========== 悬浮提示 ==========
     function showTooltip(perfs, venueName, event) {
