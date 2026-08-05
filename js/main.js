@@ -52,7 +52,19 @@
         try {
             var resp = await fetch('data/performances.json');
             if (!resp.ok) throw new Error('HTTP ' + resp.status);
-            allPerformances = await resp.json();
+            var raw = await resp.json();
+            // 数据质量：去重处理
+            if (window.DataQuality && raw.length > 0) {
+                var dedupResult = window.DataQuality.deduplicate(raw);
+                if (dedupResult.report.duplicateCount > 0) {
+                    console.log('[数据质量] 自动去重: 发现 ' + dedupResult.report.duplicateCount + ' 条重复数据，已过滤');
+                }
+                allPerformances = dedupResult.unique;
+                // 标注数据来源
+                window.DataQuality.annotateSource(allPerformances);
+            } else {
+                allPerformances = raw;
+            }
         } catch(e) {
             console.error('[数据] 演出数据加载失败:', e.message);
             allPerformances = [];

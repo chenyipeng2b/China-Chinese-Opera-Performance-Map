@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>数据质量管理 - 中国戏曲演出地图</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        .dq-container { max-width: 1100px; margin: 0 auto; padding: 80px 20px 40px; }
+        .dq-header { text-align: center; margin-bottom: 32px; }
+        .dq-header h1 {
+            font-size: 28px; font-weight: 700;
+            background: linear-gradient(135deg, #C41E3A, #D4A843);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+        .dq-header p { color: var(--text-muted); font-size: 14px; }
+        .dq-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(139,115,85,0.08);
+        }
+        .dq-card h2 {
+            font-size: 18px; color: var(--gold);
+            margin-bottom: 16px; padding-bottom: 10px;
+            border-bottom: 1px solid rgba(201,169,110,0.15);
+            display: flex; align-items: center; gap: 8px;
+        }
+        .dq-score-circle {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 80px; height: 80px; border-radius: 50%;
+            font-size: 28px; font-weight: 700;
+            margin: 0 auto 16px;
+            border: 4px solid;
+        }
+        .dq-score-circle.good { color: #4CAF50; border-color: #4CAF50; background: rgba(76,175,80,0.06); }
+        .dq-score-circle.ok { color: #FF9800; border-color: #FF9800; background: rgba(255,152,0,0.06); }
+        .dq-score-circle.bad { color: #E53935; border-color: #E53935; background: rgba(229,57,53,0.06); }
+        .dq-stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px; margin-top: 16px;
+        }
+        .dq-stat {
+            text-align: center; padding: 14px 8px;
+            background: rgba(184,148,62,0.06);
+            border-radius: 10px; border: 1px solid rgba(184,148,62,0.1);
+        }
+        .dq-stat-val { font-size: 26px; font-weight: 700; color: var(--gold); }
+        .dq-stat-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+        .dq-chart-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; }
+        .dq-chart-box { flex: 1; min-width: 280px; height: 200px; }
+        .dq-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 12px; }
+        .dq-table th {
+            text-align: left; padding: 8px 10px; font-weight: 600;
+            color: var(--gold); border-bottom: 2px solid rgba(201,169,110,0.2);
+            font-size: 11px; white-space: nowrap;
+        }
+        .dq-table td { padding: 7px 10px; border-bottom: 1px solid rgba(201,169,110,0.06); color: var(--text-primary); }
+        .dq-table tr:hover td { background: rgba(201,169,110,0.04); }
+        .dq-badge {
+            display: inline-block; padding: 2px 8px; border-radius: 4px;
+            font-size: 10px; font-weight: 600;
+        }
+        .dq-badge.error { background: rgba(229,57,53,0.12); color: #E53935; }
+        .dq-badge.warn { background: rgba(255,152,0,0.12); color: #FF9800; }
+        .dq-badge.ok { background: rgba(76,175,80,0.1); color: #4CAF50; }
+        .dq-badge.info { background: rgba(33,150,243,0.1); color: #2196F3; }
+        .dq-btn {
+            padding: 10px 22px; border: 1px solid var(--glass-border); border-radius: 8px;
+            background: var(--bg-secondary); color: var(--text-secondary);
+            font-size: 13px; font-family: inherit; cursor: pointer;
+            transition: all 0.2s; margin: 4px;
+        }
+        .dq-btn:hover { border-color: var(--gold); color: var(--gold); }
+        .dq-btn.primary {
+            background: linear-gradient(135deg, #B8943E, #C9A96E);
+            color: #fff; border: none;
+        }
+        .dq-btn.primary:hover { opacity: 0.9; transform: translateY(-1px); }
+        .dq-btn.danger:hover { border-color: #E53935; color: #E53935; }
+        .dq-empty { text-align: center; padding: 32px; color: var(--text-muted); font-size: 13px; }
+        .dq-back-link {
+            display: inline-flex; align-items: center; gap: 6px;
+            color: var(--text-muted); text-decoration: none; font-size: 13px;
+            margin-bottom: 20px; transition: color 0.2s;
+        }
+        .dq-back-link:hover { color: var(--gold); }
+        .dq-tabs { display: flex; gap: 4px; margin-bottom: 16px; background: var(--bg-secondary); border-radius: 8px; padding: 3px; }
+        .dq-tab {
+            padding: 6px 16px; border: none; border-radius: 6px; background: transparent;
+            color: var(--text-muted); font-size: 12px; font-family: inherit; cursor: pointer;
+            transition: all 0.2s;
+        }
+        .dq-tab.active { background: var(--gold); color: #fff; font-weight: 600; }
+        .dq-tab:hover:not(.active) { color: var(--gold); }
+        [data-theme="dark"] .dq-card { background: rgba(22,33,62,0.85); }
+        [data-theme="dark"] .dq-stat { background: rgba(22,33,62,0.5); }
+        @media (max-width: 768px) {
+            .dq-container { padding: 60px 12px 30px; }
+            .dq-header h1 { font-size: 22px; }
+            .dq-chart-row { flex-direction: column; }
+            .dq-chart-box { min-width: auto; height: 160px; }
+            .dq-stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="dq-container">
+        <a href="index.html" class="dq-back-link">← 返回地图</a>
+        <div class="dq-header">
+            <h1>📊 数据质量管理</h1>
+            <p>数据去重 · 校验清洗 · 来源标注 · 状态刷新</p>
+        </div>
+
+        <!-- 质量总览 -->
+        <div class="dq-card" id="dqOverview">
+            <h2>🏆 数据质量总览</h2>
+            <div style="text-align:center">
+                <div class="dq-score-circle" id="dqScoreCircle">--</div>
+                <div style="font-size:13px;color:var(--text-muted)">综合质量评分</div>
+            </div>
+            <div class="dq-stats-grid" id="dqStatsGrid"></div>
+        </div>
+
+        <!-- Tab 切换 -->
+        <div class="dq-tabs">
+            <button class="dq-tab active" data-dqtab="validation">校验结果</button>
+            <button class="dq-tab" data-dqtab="duplicates">重复检测</button>
+            <button class="dq-tab" data-dqtab="source">数据来源</button>
+            <button class="dq-tab" data-dqtab="refresh">状态刷新</button>
+        </div>
+
+        <!-- 校验结果 -->
+        <div class="dq-card" id="dqValidation" style="display:block">
+            <h2>🔍 数据校验结果</h2>
+            <div id="dqValidationContent"></div>
+        </div>
+
+        <!-- 重复检测 -->
+        <div class="dq-card" id="dqDuplicates" style="display:none">
+            <h2>🔄 重复数据检测</h2>
+            <div id="dqDuplicatesContent"></div>
+        </div>
+
+        <!-- 数据来源 -->
+        <div class="dq-card" id="dqSource" style="display:none">
+            <h2>📡 数据来源分析</h2>
+            <div class="dq-chart-row">
+                <div class="dq-chart-box" id="dqSourceChart"></div>
+                <div class="dq-chart-box" id="dqPlatformChart"></div>
+            </div>
+            <div id="dqSourceStats"></div>
+        </div>
+
+        <!-- 状态刷新 -->
+        <div class="dq-card" id="dqRefresh" style="display:none">
+            <h2>⏰ 演出状态刷新</h2>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+                <button class="dq-btn primary" onclick="DataQualityManager.runRefresh()">🔄 立即刷新状态</button>
+                <button class="dq-btn danger" onclick="DataQualityManager.exportReport()">📥 导出质量报告</button>
+            </div>
+            <div id="dqRefreshContent"></div>
+        </div>
+    </div>
+
+    <script src="js/polyfill.js"></script>
+    <script src="js/log.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/data-quality.js"></script>
+    <script>
+        ThemeManager.init();
+
+        var DataQualityManager = {
+            report: null,
+            perfs: [],
+
+            init: async function() {
+                try {
+                    var resp = await fetch('data/performances.json');
+                    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                    this.perfs = await resp.json();
+                } catch(e) {
+                    this.perfs = [];
+                }
+                this.report = DataQuality.generateReport(this.perfs);
+                this.renderOverview();
+                this.renderValidation();
+                this.renderDuplicates();
+                this.renderSource();
+                this.renderRefresh();
+                this.bindTabs();
+            },
+
+            renderOverview: function() {
+                var r = this.report;
+                var score = r.qualityScore;
+                var circle = document.getElementById('dqScoreCircle');
+                circle.textContent = score;
+                circle.className = 'dq-score-circle ' + (score >= 80 ? 'good' : score >= 50 ? 'ok' : 'bad');
+
+                document.getElementById('dqStatsGrid').innerHTML =
+                    '<div class="dq-stat"><div class="dq-stat-val">' + r.totalRecords + '</div><div class="dq-stat-label">总记录数</div></div>' +
+                    '<div class="dq-stat"><div class="dq-stat-val" style="color:#4CAF50">' + r.validation.valid + '</div><div class="dq-stat-label">校验通过</div></div>' +
+                    '<div class="dq-stat"><div class="dq-stat-val" style="color:#E53935">' + r.validation.invalid + '</div><div class="dq-stat-label">校验未通过</div></div>' +
+                    '<div class="dq-stat"><div class="dq-stat-val" style="color:#FF9800">' + r.validation.warnings + '</div><div class="dq-stat-label">有警告</div></div>' +
+                    '<div class="dq-stat"><div class="dq-stat-val">' + r.dedup.duplicateCount + '</div><div class="dq-stat-label">疑似重复</div></div>' +
+                    '<div class="dq-stat"><div class="dq-stat-val">' + r.source.manual + '</div><div class="dq-stat-label">手动录入</div></div>' +
+                    '<div class="dq-stat"><div class="dq-stat-val">' + r.source.crawled + '</div><div class="dq-stat-label">网络爬取</div></div>' +
+                    '<div class="dq-stat"><div class="dq-stat-val">' + r.refresh.expiredCount + '</div><div class="dq-stat-label">已过期(>' + DataQuality.config.expiredDays + '天)</div></div>';
+            },
+
+            renderValidation: function() {
+                var r = this.report;
+                var details = DataQuality.validateAll(this.perfs).details;
+                var invalidItems = details.filter(function(d) { return !d.valid || d.warnings.length > 0; });
+
+                if (invalidItems.length === 0) {
+                    document.getElementById('dqValidationContent').innerHTML = '<div class="dq-empty">✅ 所有数据校验通过，无错误或警告</div>';
+                    return;
+                }
+
+                var html = '<table class="dq-table"><thead><tr><th>演出名称</th><th>ID</th><th>得分</th><th>错误</th><th>警告</th></tr></thead><tbody>';
+                invalidItems.forEach(function(item) {
+                    var badge = item.valid ? '<span class="dq-badge warn">⚠ ' + item.warnings.length + '</span>' : '<span class="dq-badge error">✕ ' + item.errors.length + '</span>';
+                    html += '<tr>' +
+                        '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + item._name + '">' + item._name + '</td>' +
+                        '<td style="font-size:10px;color:var(--text-muted)">' + item._id + '</td>' +
+                        '<td><span class="dq-badge ' + (item.score >= 80 ? 'ok' : item.score >= 50 ? 'warn' : 'error') + '">' + item.score + '</span></td>' +
+                        '<td style="color:#E53935;font-size:11px">' + item.errors.join('<br>') + '</td>' +
+                        '<td style="color:#FF9800;font-size:11px">' + item.warnings.join('<br>') + '</td>' +
+                        '</tr>';
+                });
+                html += '</tbody></table>';
+                document.getElementById('dqValidationContent').innerHTML = html;
+            },
+
+            renderDuplicates: function() {
+                var r = this.report;
+                var groups = r.dedup.groups;
+
+                if (groups.length === 0) {
+                    document.getElementById('dqDuplicatesContent').innerHTML = '<div class="dq-empty">✅ 未检测到重复数据</div>';
+                    return;
+                }
+
+                var html = '<table class="dq-table"><thead><tr><th>原始记录</th><th>疑似重复</th><th>相似度</th></tr></thead><tbody>';
+                groups.forEach(function(g) {
+                    html += '<tr>' +
+                        '<td>' + (g.original.name || '') + '<br><span style="font-size:10px;color:var(--text-muted)">' + (g.original.city||'') + ' · ' + (g.original.venue||g.original.address||'') + '</span></td>' +
+                        '<td>' + (g.duplicate.name || '') + '<br><span style="font-size:10px;color:var(--text-muted)">' + (g.duplicate.city||'') + ' · ' + (g.duplicate.venue||g.duplicate.address||'') + '</span></td>' +
+                        '<td><span class="dq-badge ' + (g.similarity >= 0.9 ? 'error' : 'warn') + '">' + Math.round(g.similarity * 100) + '%</span></td>' +
+                        '</tr>';
+                });
+                html += '</tbody></table>';
+                document.getElementById('dqDuplicatesContent').innerHTML = html;
+            },
+
+            renderSource: function() {
+                var r = this.report;
+                // 来源饼图
+                var chartDom = document.getElementById('dqSourceChart');
+                if (chartDom) {
+                    var chart = echarts.init(chartDom);
+                    chart.setOption({
+                        title: { text: '数据来源分布', left: 'center', top: 8, textStyle: { fontSize: 13, color: 'var(--text-primary)' } },
+                        series: [{
+                            type: 'pie', radius: ['40%', '65%'], center: ['50%', '55%'],
+                            data: [
+                                { name: '手动录入', value: r.source.manual, itemStyle: { color: '#4CAF50' } },
+                                { name: '网络爬取', value: r.source.crawled, itemStyle: { color: '#2196F3' } },
+                                { name: '其他', value: r.source.other, itemStyle: { color: '#9E9E9E' } }
+                            ],
+                            label: { fontSize: 10 }
+                        }]
+                    });
+                }
+
+                // 平台分布
+                var platformDom = document.getElementById('dqPlatformChart');
+                if (platformDom && Object.keys(r.platforms).length > 0) {
+                    var pChart = echarts.init(platformDom);
+                    var pData = Object.entries(r.platforms).sort(function(a,b){return b[1]-a[1];});
+                    pChart.setOption({
+                        title: { text: '爬取来源平台', left: 'center', top: 8, textStyle: { fontSize: 13, color: 'var(--text-primary)' } },
+                        xAxis: { type: 'value', show: false },
+                        yAxis: { type: 'category', data: pData.map(function(d){return d[0];}), axisLabel: { fontSize: 10 } },
+                        series: [{ type: 'bar', data: pData.map(function(d){return d[1];}),
+                            itemStyle: { borderRadius: [0,4,4,0], color: '#2196F3' }, barMaxWidth: 20 }]
+                    });
+                }
+
+                // 完整性统计
+                var c = r.completeness;
+                document.getElementById('dqSourceStats').innerHTML =
+                    '<div class="dq-stats-grid" style="margin-top:16px">' +
+                    '<div class="dq-stat"><div class="dq-stat-val">' + Math.round(c.withActors/c.total*100) + '%</div><div class="dq-stat-label">有演员信息</div></div>' +
+                    '<div class="dq-stat"><div class="dq-stat-val">' + Math.round(c.withTroupe/c.total*100) + '%</div><div class="dq-stat-label">有剧团信息</div></div>' +
+                    '<div class="dq-stat"><div class="dq-stat-val">' + Math.round(c.withDescription/c.total*100) + '%</div><div class="dq-stat-label">有演出描述</div></div>' +
+                    '<div class="dq-stat"><div class="dq-stat-val">' + Math.round(c.withPrice/c.total*100) + '%</div><div class="dq-stat-label">有票价信息</div></div>' +
+                    '</div>';
+            },
+
+            renderRefresh: function() {
+                var r = this.report;
+                var html = '';
+
+                if (r.refresh.statusChanges.length > 0) {
+                    html += '<h3 style="font-size:14px;color:var(--text-primary);margin-bottom:8px">📌 状态变更 (' + r.refresh.changedCount + '条)</h3>';
+                    html += '<table class="dq-table"><thead><tr><th>演出名称</th><th>原状态</th><th>新状态</th></tr></thead><tbody>';
+                    r.refresh.statusChanges.forEach(function(c) {
+                        html += '<tr><td>' + c.name + '</td><td>' + c.from + '</td><td><span class="dq-badge info">' + c.to + '</span></td></tr>';
+                    });
+                    html += '</tbody></table>';
+                } else {
+                    html += '<div class="dq-empty">✅ 所有演出状态正常，无需更新</div>';
+                }
+
+                if (r.refresh.expiredCount > 0) {
+                    html += '<h3 style="font-size:14px;color:#E53935;margin:16px 0 8px">🗑️ 已过期数据 (' + r.refresh.expiredCount + '条，结束超过' + DataQuality.config.expiredDays + '天)</h3>';
+                    html += '<table class="dq-table"><thead><tr><th>演出名称</th><th>结束日期</th><th>已过天数</th></tr></thead><tbody>';
+                    r.refresh.expiredItems.slice(0, 20).forEach(function(e) {
+                        html += '<tr><td>' + e.name + '</td><td>' + e.endDate + '</td><td><span class="dq-badge error">' + e.daysSinceEnd + '天</span></td></tr>';
+                    });
+                    html += '</tbody></table>';
+                }
+
+                document.getElementById('dqRefreshContent').innerHTML = html;
+            },
+
+            runRefresh: function() {
+                var result = DataQuality.refreshStatus(this.perfs);
+                this.report.refresh = result;
+                this.renderRefresh();
+                this.renderOverview();
+            },
+
+            exportReport: function() {
+                var text = JSON.stringify(this.report, null, 2);
+                var blob = new Blob([text], { type: 'application/json' });
+                var a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'opera-data-quality-report-' + new Date().toISOString().slice(0,10) + '.json';
+                a.click();
+            },
+
+            bindTabs: function() {
+                var self = this;
+                document.querySelectorAll('.dq-tab').forEach(function(tab) {
+                    tab.addEventListener('click', function() {
+                        document.querySelectorAll('.dq-tab').forEach(function(t) { t.classList.remove('active'); });
+                        this.classList.add('active');
+                        var tabName = this.getAttribute('data-dqtab');
+                        document.getElementById('dqValidation').style.display = tabName === 'validation' ? 'block' : 'none';
+                        document.getElementById('dqDuplicates').style.display = tabName === 'duplicates' ? 'block' : 'none';
+                        document.getElementById('dqSource').style.display = tabName === 'source' ? 'block' : 'none';
+                        document.getElementById('dqRefresh').style.display = tabName === 'refresh' ? 'block' : 'none';
+                    });
+                });
+            }
+        };
+
+        DataQualityManager.init();
+    </script>
+</body>
+</html>
