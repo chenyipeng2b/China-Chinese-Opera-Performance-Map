@@ -999,93 +999,20 @@ chart = echarts.init(dom, null, { devicePixelRatio: window.devicePixelRatio || 1
         }
     }
 
-    // ========== 评分与评论系统 ==========
-    var REVIEW_STORAGE_KEY = 'opera_perf_reviews';
-    var currentReviewRating = 0;
-    var currentReviewPerfId = '';
-
-    function getReviewKey(perfName, venue) {
-        return ((perfName || '') + '|' + (venue || '')).replace(/\s+/g, '_').substring(0, 120);
-    }
-
-    function loadReviews(perfName, venue) {
-        var key = getReviewKey(perfName, venue);
-        var all = {};
-        try { all = JSON.parse(localStorage.getItem(REVIEW_STORAGE_KEY) || '{}'); } catch(e) {}
-        return all[key] || [];
-    }
-
-    function saveReviews(perfName, venue, reviews) {
-        var key = getReviewKey(perfName, venue);
-        var all = {};
-        try { all = JSON.parse(localStorage.getItem(REVIEW_STORAGE_KEY) || '{}'); } catch(e) {}
-        all[key] = reviews;
-        localStorage.setItem(REVIEW_STORAGE_KEY, JSON.stringify(all));
-    }
-
+    // ========== 评论系统（Giscus 集成） ==========
     function renderReviews(perfName, venue) {
-        var reviews = loadReviews(perfName, venue);
-        currentReviewPerfId = getReviewKey(perfName, venue);
+        // 延迟加载 Giscus 评论
+        var container = document.getElementById('pd-giscus-container');
+        if (!container) return;
 
-        // 统计
-        var total = reviews.length;
-        var avg = total > 0 ? (reviews.reduce(function(s, r) { return s + r.rating; }, 0) / total).toFixed(1) : 0;
-        var summaryEl = document.getElementById('pdReviewSummary');
-        if (summaryEl) {
-            var starsHtml = '';
-            for (var i = 1; i <= 5; i++) {
-                starsHtml += i <= Math.round(avg) ? '★' : '☆';
-            }
-            summaryEl.innerHTML = '<span class="pd-review-avg">' + avg + '</span><span class="pd-review-avg-stars">' + starsHtml + '</span><span class="pd-review-count">(' + total + '条评价)</span>';
+        // 显示加载提示
+        container.innerHTML = '<div class="pd-review-empty">正在加载评论系统...</div>';
+
+        // 调用全局 Giscus 加载函数
+        if (window._loadPerfGiscus) {
+            window._loadPerfGiscus(perfName, venue);
         }
-
-        // 列表
-        var listEl = document.getElementById('pdReviewList');
-        if (!listEl) return;
-
-        if (reviews.length === 0) {
-            listEl.innerHTML = '<div class="pd-review-empty">暂无评价，成为第一个评价的人吧~</div>';
-            return;
-        }
-
-        // 最新在前
-        var sorted = reviews.slice().reverse();
-        var html = '';
-        sorted.forEach(function(r, idx) {
-            var starsHtml = '';
-            for (var i = 1; i <= 5; i++) {
-                starsHtml += i <= r.rating ? '★' : '☆';
-            }
-            var timeStr = r.time ? new Date(r.time).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
-            html += '<div class="pd-review-item">' +
-                '<div class="pd-review-item-header">' +
-                '<span class="pd-review-item-user">' + escapeHtml(r.nickname || '匿名观众') + '</span>' +
-                '<span class="pd-review-item-stars">' + starsHtml + '</span>' +
-                '</div>' +
-                '<div class="pd-review-item-content">' + escapeHtml(r.content || '') + '</div>' +
-                '<div style="display:flex;justify-content:space-between;align-items:center">' +
-                '<span class="pd-review-item-time">' + timeStr + '</span>' +
-                '<button class="pd-review-item-delete" onclick="window._deleteReview(' + (reviews.length - 1 - idx) + ')">删除</button>' +
-                '</div>' +
-                '</div>';
-        });
-        listEl.innerHTML = html;
     }
-
-    window._deleteReview = function(index) {
-        var key = currentReviewPerfId;
-        var all = {};
-        try { all = JSON.parse(localStorage.getItem(REVIEW_STORAGE_KEY) || '{}'); } catch(e) {}
-        var reviews = all[key] || [];
-        if (index >= 0 && index < reviews.length) {
-            if (confirm('确定删除这条评价吗？')) {
-                reviews.splice(index, 1);
-                all[key] = reviews;
-                localStorage.setItem(REVIEW_STORAGE_KEY, JSON.stringify(all));
-                renderReviewsForCurrent();
-            }
-        }
-    };
 
     function renderReviewsForCurrent() {
         var nameEl = document.getElementById('pdName');
@@ -1095,85 +1022,8 @@ chart = echarts.init(dom, null, { devicePixelRatio: window.devicePixelRatio || 1
     }
 
     function bindReviewForm() {
-        var stars = document.querySelectorAll('#pdStarRating .pd-star');
-        var submitBtn = document.getElementById('pdReviewSubmit');
-        var contentInput = document.getElementById('pdReviewContent');
-        var nicknameInput = document.getElementById('pdReviewNickname');
-
-        // 星星点击
-        stars.forEach(function(star) {
-            star.addEventListener('click', function() {
-                currentReviewRating = parseInt(this.getAttribute('data-star'));
-                stars.forEach(function(s) {
-                    var val = parseInt(s.getAttribute('data-star'));
-                    s.classList.toggle('active', val <= currentReviewRating);
-                });
-            });
-            star.addEventListener('mouseenter', function() {
-                var val = parseInt(this.getAttribute('data-star'));
-                stars.forEach(function(s) {
-                    var sv = parseInt(s.getAttribute('data-star'));
-                    s.style.color = sv <= val ? '#F5A623' : '';
-                });
-            });
-        });
-        var starContainer = document.getElementById('pdStarRating');
-        if (starContainer) {
-            starContainer.addEventListener('mouseleave', function() {
-                stars.forEach(function(s) {
-                    var sv = parseInt(s.getAttribute('data-star'));
-                    s.style.color = sv <= currentReviewRating ? '#F5A623' : '';
-                });
-            });
-        }
-
-        // 提交按钮
-        if (submitBtn && contentInput) {
-            var checkForm = function() {
-                var hasContent = (contentInput.value || '').trim().length > 0;
-                submitBtn.disabled = !hasContent || currentReviewRating === 0;
-            };
-            contentInput.addEventListener('input', checkForm);
-            submitBtn.addEventListener('click', function() {
-                var content = (contentInput.value || '').trim();
-                if (!content) return;
-                if (currentReviewRating === 0) {
-                    alert('请先打分（点击星星）');
-                    return;
-                }
-                // 简单敏感词过滤
-                var badWords = ['傻逼','sb','草泥马','cnm','fuck','法克','tmd','操你妈','艹你妈'];
-                for (var b = 0; b < badWords.length; b++) {
-                    if (content.toLowerCase().indexOf(badWords[b].toLowerCase()) !== -1) {
-                        alert('评论包含不当内容，请修改后重试');
-                        return;
-                    }
-                }
-                var nickname = (nicknameInput ? nicknameInput.value.trim() : '') || '匿名观众';
-                var key = currentReviewPerfId;
-                var all = {};
-                try { all = JSON.parse(localStorage.getItem(REVIEW_STORAGE_KEY) || '{}'); } catch(e) {}
-                var reviews = all[key] || [];
-                reviews.push({
-                    nickname: nickname,
-                    rating: currentReviewRating,
-                    content: content,
-                    time: new Date().toISOString()
-                });
-                if (reviews.length > 200) reviews = reviews.slice(-200);
-                all[key] = reviews;
-                localStorage.setItem(REVIEW_STORAGE_KEY, JSON.stringify(all));
-
-                // 清空表单
-                contentInput.value = '';
-                if (nicknameInput) nicknameInput.value = '';
-                currentReviewRating = 0;
-                stars.forEach(function(s) { s.classList.remove('active'); s.style.color = ''; });
-                submitBtn.disabled = true;
-
-                renderReviewsForCurrent();
-            });
-        }
+        // 评分表单已移除，由 Giscus 处理评论
+        // 保留此函数以防其他地方引用
     }
 
     // ========== 社会化分享 ==========

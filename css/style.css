@@ -2014,6 +2014,15 @@ input, textarea, [contenteditable] {
   padding: 2px 8px;
   border-radius: 10px;
 }
+.discuss-header-badge {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: rgba(201,169,110,0.1);
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(201,169,110,0.2);
+  white-space: nowrap;
+}
 .discuss-arrow {
   width: 18px; height: 18px;
   color: var(--text-muted);
@@ -2318,6 +2327,31 @@ input, textarea, [contenteditable] {
 /* ============================================
    讨论区暗色主题适配
    ============================================ */
+[data-theme="dark"] .discuss-header-badge {
+  background: rgba(201,169,110,0.08);
+  border-color: rgba(201,169,110,0.15);
+  color: #b0a890;
+}
+
+/* Giscus 评论容器 */
+.giscus-wrapper {
+  min-height: 80px;
+  width: 100%;
+}
+.giscus-wrapper iframe {
+  width: 100% !important;
+  border: none !important;
+}
+
+/* 演出详情中的评论副标题 */
+.pd-review-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: rgba(201,169,110,0.06);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
 [data-theme="dark"] .discuss-post-box {
   background: rgba(201,169,110,0.06);
   border-color: rgba(201,169,110,0.18);

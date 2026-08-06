@@ -24,6 +24,38 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Inject build-time secrets
+        run: |
+          # 注入管理员密码 hash（从 GitHub Secrets 读取）
+          if [ -n "${{ secrets.ADMIN_PASSWORD_HASH }}" ]; then
+            echo "[CI] 注入管理员密码 hash"
+            find . -name "*.html" -o -name "*.js" | while read file; do
+              sed -i "s/__ADMIN_PASSWORD_HASH_PLACEHOLDER__/${{ secrets.ADMIN_PASSWORD_HASH }}/g" "$file"
+            done
+          else
+            echo "[CI] 未设置 ADMIN_PASSWORD_HASH secret，使用默认 hash"
+            DEFAULT_HASH="ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f"
+            find . -name "*.html" -o -name "*.js" | while read file; do
+              sed -i "s/__ADMIN_PASSWORD_HASH_PLACEHOLDER__/${DEFAULT_HASH}/g" "$file"
+            done
+          fi
+          
+          # 注入 Giscus Repo ID（从 GitHub Secrets 读取）
+          if [ -n "${{ secrets.GISCUS_REPO_ID }}" ]; then
+            echo "[CI] 注入 Giscus Repo ID"
+            find . -name "*.html" -o -name "*.js" | while read file; do
+              sed -i "s/__GISCUS_REPO_ID_PLACEHOLDER__/${{ secrets.GISCUS_REPO_ID }}/g" "$file"
+            done
+          fi
+          
+          # 注入 Giscus Category ID（从 GitHub Secrets 读取）
+          if [ -n "${{ secrets.GISCUS_CATEGORY_ID }}" ]; then
+            echo "[CI] 注入 Giscus Category ID"
+            find . -name "*.html" -o -name "*.js" | while read file; do
+              sed -i "s/__GISCUS_CATEGORY_ID_PLACEHOLDER__/${{ secrets.GISCUS_CATEGORY_ID }}/g" "$file"
+            done
+          fi
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 

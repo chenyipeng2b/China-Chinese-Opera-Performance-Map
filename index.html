@@ -12,6 +12,39 @@
     <meta name="theme-color" content="#E8DFD0" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#1a1a2e" media="(prefers-color-scheme: dark)">
     <title>中国戏曲演出地图</title>
+    <!-- 字体加载优化：预连接 + 系统字体优先 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <style>
+      /* 本地系统字体优先，Noto Sans SC 作为可选增强 */
+      @font-face {
+        font-family: 'Noto Sans SC';
+        font-style: normal;
+        font-weight: 400;
+        font-display: swap;
+        src: local('Noto Sans SC'), local('NotoSansSC-Regular'),
+             url(https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400&display=swap) format('woff2');
+      }
+      @font-face {
+        font-family: 'Noto Sans SC';
+        font-style: normal;
+        font-weight: 500;
+        font-display: swap;
+        src: local('Noto Sans SC'), local('NotoSansSC-Medium'),
+             url(https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@500&display=swap) format('woff2');
+      }
+      @font-face {
+        font-family: 'Noto Sans SC';
+        font-style: normal;
+        font-weight: 700;
+        font-display: swap;
+        src: local('Noto Sans SC'), local('NotoSansSC-Bold'),
+             url(https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@700&display=swap) format('woff2');
+      }
+    </style>
+    <!-- 异步加载 Google Fonts CSS（不阻塞渲染） -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" media="print" onload="this.media='all';this.onload=null">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap"></noscript>
     <link rel="stylesheet" href="css/style.css">
     <!-- ECharts: 本地优先，多CDN fallback，VPN开关都能用 -->
     <script>
@@ -191,7 +224,7 @@
         <div class="perf-bar-v2-stats" id="perfBarV2Stats"></div>
     </div>
 
-    <!-- 讨论区面板 -->
+    <!-- 讨论区面板（基于 Giscus - GitHub Discussions 评论系统） -->
     <div class="discuss-panel" id="discussionPanel">
         <div class="discuss-header" id="discussionHeader">
             <div class="discuss-header-left">
@@ -199,34 +232,16 @@
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                 </svg>
                 <span class="discuss-header-title">戏迷讨论区</span>
-                <span class="discuss-header-count" id="discussPostCount">0</span>
+                <span class="discuss-header-badge">需 GitHub 账号</span>
             </div>
             <svg class="discuss-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="6 9 12 15 18 9"/>
             </svg>
         </div>
         <div class="discuss-body">
-            <!-- 发帖区 -->
-            <div class="discuss-post-box">
-                <div class="discuss-input-row">
-                    <input type="text" id="discNickname" class="discuss-nickname-input" placeholder="你的昵称（必填）" maxlength="20" autocomplete="off">
-                    <span class="discuss-count" id="discNicknameCount">0/20</span>
-                </div>
-                <textarea id="discContent" class="discuss-content-input" placeholder="说点什么吧..." maxlength="500" rows="3" autocomplete="off"></textarea>
-                <div class="discuss-post-footer">
-                    <span class="discuss-count" id="discContentCount">0/500</span>
-                    <div class="discuss-post-actions">
-                        <span id="discFilterHint" class="discuss-filter-hint hidden"></span>
-                        <button id="discPostBtn" class="discuss-post-btn" disabled>发布</button>
-                    </div>
-                </div>
+            <div id="giscus-container" class="giscus-wrapper">
+                <div class="discuss-empty">展开后加载讨论区...</div>
             </div>
-            <!-- 评论列表 -->
-            <div id="discList" class="discuss-list">
-                <div class="discuss-empty">暂无评论，快来抢沙发吧~</div>
-            </div>
-            <!-- 分页器 -->
-            <div id="discPager" class="discuss-pager"></div>
         </div>
     </div>
 
@@ -261,28 +276,14 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                 </button>
             </div>
-            <!-- 评分与评论 -->
+            <!-- 观众评论（基于 Giscus） -->
             <div class="pd-reviews" id="pdReviews">
                 <div class="pd-review-header">
                     <h3 class="pd-review-title">观众评价</h3>
-                    <div class="pd-review-summary" id="pdReviewSummary"></div>
+                    <span class="pd-review-subtitle">需 GitHub 账号登录评论</span>
                 </div>
-                <div class="pd-review-form">
-                    <div class="pd-star-rating" id="pdStarRating">
-                        <span class="pd-star" data-star="1">★</span>
-                        <span class="pd-star" data-star="2">★</span>
-                        <span class="pd-star" data-star="3">★</span>
-                        <span class="pd-star" data-star="4">★</span>
-                        <span class="pd-star" data-star="5">★</span>
-                    </div>
-                    <div class="pd-review-input-row">
-                        <input type="text" id="pdReviewNickname" class="pd-review-nickname" placeholder="昵称" maxlength="20">
-                        <textarea id="pdReviewContent" class="pd-review-textarea" placeholder="分享你的观演体验..." maxlength="300" rows="2"></textarea>
-                        <button id="pdReviewSubmit" class="pd-review-submit">发表评价</button>
-                    </div>
-                </div>
-                <div class="pd-review-list" id="pdReviewList">
-                    <div class="pd-review-empty">暂无评价，成为第一个评价的人吧~</div>
+                <div id="pd-giscus-container" class="giscus-wrapper">
+                    <div class="pd-review-empty">评论加载中...</div>
                 </div>
             </div>
             <div class="pd-footer">
@@ -347,6 +348,20 @@
         <div class="log-panel-list" id="logList"></div>
     </div>
 
+    <!-- 运行时配置（CI 构建时注入） -->
+    <script>
+        window.__OPERA_CONFIG__ = {
+            // 管理员密码 SHA256 hash（CI 构建时注入真实值，默认占位符）
+            adminPasswordHash: '__ADMIN_PASSWORD_HASH_PLACEHOLDER__',
+            // Giscus 配置
+            giscus: {
+                repo: 'chenyipeng2b/China-Chinese-Opera-Performance-Map',
+                repoId: '__GISCUS_REPO_ID_PLACEHOLDER__',
+                category: 'General',
+                categoryId: '__GISCUS_CATEGORY_ID_PLACEHOLDER__'
+            }
+        };
+    </script>
     <script src="js/log.js"></script>
     <script src="js/theme.js"></script>
     <script>
@@ -356,5 +371,86 @@
     <script src="js/discuss.js"></script>
     <script src="js/data-quality.js"></script>
     <script src="js/main.js"></script>
+    <!-- Giscus 评论系统 -->
+    <script>
+    (function() {
+        'use strict';
+        var config = window.__OPERA_CONFIG__ || {};
+        var giscusLoaded = false;
+        var currentGiscusTerm = '';
+
+        function getTheme() {
+            return (window.ThemeManager && window.ThemeManager.isDark && window.ThemeManager.isDark()) ? 'dark' : 'light';
+        }
+
+        function loadGiscus(containerId, term) {
+            var container = document.getElementById(containerId);
+            if (!container || giscusLoaded) return;
+            
+            // 如果 term 相同，跳过重复加载
+            if (currentGiscusTerm === term && document.querySelector('#' + containerId + ' .giscus')) {
+                return;
+            }
+            
+            currentGiscusTerm = term;
+            container.innerHTML = '';
+            
+            var script = document.createElement('script');
+            script.src = 'https://giscus.app/client.js';
+            script.setAttribute('data-repo', config.giscus.repo);
+            script.setAttribute('data-repo-id', config.giscus.repoId);
+            script.setAttribute('data-category', config.giscus.category);
+            script.setAttribute('data-category-id', config.giscus.categoryId);
+            script.setAttribute('data-mapping', 'specific');
+            script.setAttribute('data-term', term);
+            script.setAttribute('data-reactions-enabled', '1');
+            script.setAttribute('data-emit-metadata', '0');
+            script.setAttribute('data-input-position', 'top');
+            script.setAttribute('data-theme', getTheme());
+            script.setAttribute('data-lang', 'zh-CN');
+            script.setAttribute('data-loading', 'lazy');
+            script.setAttribute('crossorigin', 'anonymous');
+            script.async = true;
+            container.appendChild(script);
+            giscusLoaded = true;
+        }
+
+        function loadDiscussGiscus() {
+            // 讨论区用 "opera-discuss" 作为 mapping term
+            loadGiscus('giscus-container', 'opera-discuss');
+        }
+
+        function loadPerfDetailGiscus(perfName, venue) {
+            // 演出详情用 "perf-{演出名}" 作为 mapping term
+            var term = 'perf-' + ((perfName || '') + '-' + (venue || '')).replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '-').substring(0, 80);
+            loadGiscus('pd-giscus-container', term);
+        }
+
+        // 监听讨论区展开事件
+        var discussHeader = document.getElementById('discussionHeader');
+        if (discussHeader) {
+            discussHeader.addEventListener('click', function() {
+                setTimeout(function() {
+                    if (document.getElementById('discussionPanel').classList.contains('open')) {
+                        loadDiscussGiscus();
+                    }
+                }, 300);
+            });
+        }
+
+        // 监听主题切换，刷新 Giscus
+        window.addEventListener('themechange', function() {
+            var theme = getTheme();
+            var iframe = document.querySelector('.giscus-frame') || document.querySelector('iframe[src*="giscus"]');
+            if (iframe && iframe.contentWindow) {
+                iframe.contentWindow.postMessage({ giscus: { setConfig: { theme: theme } } }, 'https://giscus.app');
+            }
+        });
+
+        // 暴露到全局，供 main.js 调用
+        window._loadPerfGiscus = loadPerfDetailGiscus;
+        window._loadDiscussGiscus = loadDiscussGiscus;
+    })();
+    </script>
 </body>
 </html>
