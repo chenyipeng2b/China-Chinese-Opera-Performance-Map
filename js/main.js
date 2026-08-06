@@ -22,11 +22,12 @@
 
     // ========== 加载 GeoJSON ==========
     async function loadGeoJson() {
-        // 多源回退：本地优先，再尝试多个在线CDN
+        // 多源回退：本地优先，再尝试多个在线源（国内外兼顾，VPN开关都能用）
         var sources = [
             { url: 'data/china.json', name: '本地' },
             { url: 'https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json', name: '阿里DataV' },
-            { url: 'https://geojson.cn/api/data/china-geojson/china.json', name: 'GeoJSON.cn' }
+            { url: 'https://geojson.cn/api/data/china-geojson/china.json', name: 'GeoJSON.cn' },
+            { url: 'https://raw.githubusercontent.com/lyhmyd1211/GeoMapData_CN/main/geojson/china.json', name: 'GitHub Raw' }
         ];
 
         var failures = [];
@@ -34,16 +35,24 @@
         for (var i = 0; i < sources.length; i++) {
             var src = sources[i];
             try {
-                var resp = await fetch(src.url);
+                // 设置超时避免长时间卡住（在线源10秒超时，本地2秒）
+                var timeout = src.url.indexOf('http') === 0 ? 10000 : 2000;
+                var controller = new AbortController();
+                var timer = setTimeout(function() { controller.abort(); }, timeout);
+                var resp = await fetch(src.url, { signal: controller.signal });
+                clearTimeout(timer);
                 if (!resp.ok) throw new Error('HTTP ' + resp.status);
                 var text = await resp.text();
                 geoJson = JSON.parse(text);
+                console.log('[地图] GeoJSON 加载成功: ' + src.name);
                 return true;
             } catch(e) {
-                failures.push({ name: src.name, url: src.url, error: e.message });
+                var errMsg = e.name === 'AbortError' ? '超时(' + timeout/1000 + 's)' : e.message;
+                failures.push({ name: src.name, url: src.url, error: errMsg });
+                console.warn('[地图] GeoJSON 加载失败: ' + src.name + ' - ' + errMsg);
             }
         }
-        console.error('[地图] GeoJSON 加载失败:', failures);
+        console.error('[地图] 所有GeoJSON源加载失败:', failures);
         return false;
     }
 

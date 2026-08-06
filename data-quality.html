@@ -6,7 +6,26 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>数据质量管理 - 中国戏曲演出地图</title>
     <link rel="stylesheet" href="css/style.css">
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <!-- ECharts: 本地优先，多CDN fallback，VPN开关都能用 -->
+    <script>
+    (function() {
+        var CDN_SOURCES = [
+            'js/echarts.min.js',
+            'https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js',
+            'https://unpkg.com/echarts@5.4.3/dist/echarts.min.js',
+            'https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js'
+        ];
+        function tryLoad(idx) {
+            if (idx >= CDN_SOURCES.length) { console.error('[ECharts] 所有CDN源加载失败'); return; }
+            var s = document.createElement('script');
+            s.src = CDN_SOURCES[idx];
+            s.onload = function() { console.log('[ECharts] 加载成功: ' + CDN_SOURCES[idx]); };
+            s.onerror = function() { console.warn('[ECharts] 加载失败: ' + CDN_SOURCES[idx]); tryLoad(idx + 1); };
+            document.head.appendChild(s);
+        }
+        tryLoad(0);
+    })();
+    </script>
     <style>
         .dq-container { max-width: 1100px; margin: 0 auto; padding: 80px 20px 40px; }
         .dq-header { text-align: center; margin-bottom: 32px; }

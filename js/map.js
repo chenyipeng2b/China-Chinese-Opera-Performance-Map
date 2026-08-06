@@ -46,28 +46,34 @@ const MapRenderer = {
   },
 
   /**
-   * 加载中国地图 GeoJSON
+   * 加载中国地图 GeoJSON（多源fallback，VPN开关都能用）
    */
   async loadGeoJson() {
-    try {
-      // 先尝试本地文件
-      const response = await fetch('data/china.json');
-      if (response.ok) {
-        this.geoJson = await response.json();
-        console.log('[地图] 从本地加载 GeoJSON');
-        return;
-      }
-    } catch (e) {
-      console.log('[地图] 本地 GeoJSON 未找到，从 CDN 加载');
-    }
+    var sources = [
+      { url: 'data/china.json', name: '本地' },
+      { url: 'https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json', name: '阿里DataV' },
+      { url: 'https://geojson.cn/api/data/china-geojson/china.json', name: 'GeoJSON.cn' },
+      { url: 'https://raw.githubusercontent.com/lyhmyd1211/GeoMapData_CN/main/geojson/china.json', name: 'GitHub Raw' }
+    ];
 
-    try {
-      const response = await fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json');
-      this.geoJson = await response.json();
-      console.log('[地图] 从 CDN 加载 GeoJSON');
-    } catch (e) {
-      console.error('[地图] GeoJSON 加载失败:', e);
+    for (var i = 0; i < sources.length; i++) {
+      var src = sources[i];
+      try {
+        var timeout = src.url.indexOf('http') === 0 ? 10000 : 2000;
+        var controller = new AbortController();
+        var timer = setTimeout(function() { controller.abort(); }, timeout);
+        var response = await fetch(src.url, { signal: controller.signal });
+        clearTimeout(timer);
+        if (response.ok) {
+          this.geoJson = await response.json();
+          console.log('[地图] 从 ' + src.name + ' 加载 GeoJSON');
+          return;
+        }
+      } catch (e) {
+        console.warn('[地图] ' + src.name + ' GeoJSON 加载失败: ' + (e.name === 'AbortError' ? '超时' : e.message));
+      }
     }
+    console.error('[地图] 所有GeoJSON源加载失败');
   },
 
   /**
